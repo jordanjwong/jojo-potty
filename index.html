@@ -417,6 +417,130 @@
         background: var(--surface);
       }
 
+      /* ---------- Calendar ---------- */
+      .month-card {
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        box-shadow: var(--shadow);
+        padding: 12px 10px 10px;
+        margin-top: 16px;
+      }
+      .month-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 2px 10px;
+      }
+      .month-head .m {
+        font-size: 18px;
+        font-weight: 900;
+      }
+      .month-nav {
+        width: 42px;
+        height: 42px;
+        border: 0;
+        border-radius: 12px;
+        background: transparent;
+        color: var(--brand);
+        font-size: 25px;
+        line-height: 1;
+        cursor: pointer;
+      }
+      .month-weekdays,
+      .month-grid {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+      }
+      .month-weekdays span {
+        padding: 4px 0 7px;
+        text-align: center;
+        color: var(--ink-soft);
+        font-size: 11px;
+        font-weight: 900;
+      }
+      .month-day {
+        min-width: 0;
+        min-height: 76px;
+        border: 0;
+        border-top: 1px solid var(--line);
+        border-right: 1px solid var(--line);
+        background: transparent;
+        color: var(--ink);
+        padding: 5px 3px 4px;
+        cursor: pointer;
+        text-align: left;
+        overflow: hidden;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .month-day:nth-child(7n) { border-right: 0; }
+      .month-day.outside { color: var(--ink-soft); opacity: 0.48; }
+      .month-day.selected { background: var(--surface-2); box-shadow: inset 0 0 0 2px var(--brand); }
+      .month-day .date-num {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        margin-bottom: 3px;
+        font-size: 12.5px;
+        font-weight: 900;
+      }
+      .month-day.today .date-num { background: var(--brand); color: var(--brand-ink); }
+      .day-count {
+        display: block;
+        width: 100%;
+        margin-top: 2px;
+        padding: 2px 3px;
+        border-radius: 5px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 9.5px;
+        font-weight: 900;
+        line-height: 1.25;
+      }
+      .day-count.pee { color: var(--pee); background: var(--pee-bg); }
+      .day-count.poop { color: var(--poop); background: var(--poop-bg); }
+      .calendar-loading {
+        margin: 9px 2px 0;
+        color: var(--ink-soft);
+        font-size: 12.5px;
+        font-weight: 700;
+      }
+      .day-detail { margin-top: 22px; }
+      .day-detail-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 10px;
+      }
+      .day-detail-head h3 { margin: 0; }
+      .day-detail-head span { color: var(--ink-soft); font-size: 12.5px; font-weight: 700; }
+      .day-counts {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 7px;
+        margin-bottom: 12px;
+      }
+      .day-count-chip {
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 7px 8px;
+        color: var(--ink-soft);
+        font-size: 11.5px;
+        font-weight: 800;
+      }
+      .day-count-chip svg { width: 16px; height: 16px; flex: none; color: var(--chip-color); }
+      .day-count-chip strong { margin-left: auto; color: var(--ink); font-size: 14px; }
+      .calendar-entry .when .rel { display: none; }
+
       /* ---------- Insights ---------- */
       .counts-grid {
         display: grid;
@@ -802,6 +926,10 @@
         .timer.due-t { grid-column: 1 / -1; }
         .counts-grid { grid-template-columns: 1fr 1fr; }
         .dayrow .d { width: 64px; }
+        .month-card { padding-left: 7px; padding-right: 7px; }
+        .month-day { min-height: 68px; padding-left: 2px; padding-right: 2px; }
+        .day-count { font-size: 8.5px; padding-left: 2px; padding-right: 2px; }
+        .day-counts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       }
       @media (prefers-reduced-motion: reduce) {
         .sheet, .toast, .entry { transition: none; }
@@ -838,6 +966,10 @@
           <button type="button" role="tab" id="tabActivities" aria-selected="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
             Activities
+          </button>
+          <button type="button" role="tab" id="tabCalendar" aria-selected="false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18"/></svg>
+            Calendar
           </button>
           <button type="button" role="tab" id="tabInsights" aria-selected="false">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M22 20H2"/></svg>
@@ -897,6 +1029,31 @@
         </section>
 
         <p class="share-note">Entries sync live between phones opened from this household link. Tip: choose “Add to Home Screen” and it works just like an app.</p>
+      </div>
+
+      <!-- ============ CALENDAR VIEW ============ -->
+      <div id="viewCalendar" hidden>
+        <div class="month-card">
+          <div class="month-head">
+            <button class="month-nav" id="monthPrev" type="button" aria-label="Previous month">‹</button>
+            <span class="m" id="monthLabel">—</span>
+            <button class="month-nav" id="monthNext" type="button" aria-label="Next month">›</button>
+          </div>
+          <div class="month-weekdays" aria-hidden="true">
+            <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
+          </div>
+          <div class="month-grid" id="monthGrid"></div>
+          <p class="calendar-loading" id="calendarLoading" hidden>Updating this month…</p>
+        </div>
+
+        <section class="day-detail">
+          <div class="day-detail-head">
+            <h3 id="calendarDayTitle">—</h3>
+            <span id="calendarDayTotal"></span>
+          </div>
+          <div class="day-counts" id="calendarDayCounts"></div>
+          <div id="calendarTimeline"></div>
+        </section>
       </div>
 
       <!-- ============ INSIGHTS VIEW ============ -->
@@ -1077,6 +1234,12 @@
         seq: 0,
         weekOffset: 0,
         selectedDay: startOfDay(Date.now()),
+        calendarMonth: startOfMonth(Date.now()),
+        calendarSelectedDay: startOfDay(Date.now()),
+        calendarEntries: [],
+        calendarLoadedKey: "",
+        calendarLoading: false,
+        calendarRequest: 0,
         lastCreatedId: null,
         editingId: null,
         editingIsNew: false,
@@ -1090,6 +1253,19 @@
       /* ---------- formatting ---------- */
       function startOfDay(ts) {
         var d = new Date(ts);
+        d.setHours(0, 0, 0, 0);
+        return d.getTime();
+      }
+      function startOfMonth(ts) {
+        var d = new Date(ts);
+        d.setDate(1);
+        d.setHours(0, 0, 0, 0);
+        return d.getTime();
+      }
+      function addMonths(ts, amount) {
+        var d = new Date(ts);
+        d.setDate(1);
+        d.setMonth(d.getMonth() + amount);
         d.setHours(0, 0, 0, 0);
         return d.getTime();
       }
@@ -1271,6 +1447,75 @@
           });
       }
 
+      function calendarKey() {
+        return state.dog + ":" + new Date(state.calendarMonth).getFullYear() + ":" + new Date(state.calendarMonth).getMonth();
+      }
+
+      function fetchCalendarOnce(monthTs, dogId) {
+        var nextMonth = addMonths(monthTs, 1);
+        var url = SB_REST +
+          "?select=id,household,dog,activity,occurred_at,note" +
+          "&household=eq." + encodeURIComponent(HOUSEHOLD) +
+          "&dog=eq." + encodeURIComponent(dogId) +
+          "&occurred_at=gte." + encodeURIComponent(new Date(monthTs).toISOString()) +
+          "&occurred_at=lt." + encodeURIComponent(new Date(nextMonth).toISOString()) +
+          "&order=occurred_at.asc&limit=1000";
+        return fetchWithTimeout(url, { headers: sbHeaders() }, 12000)
+          .then(function (resp) {
+            return resp.text().then(function (body) {
+              if (!resp.ok) throw httpError(resp.status, body);
+              var rows;
+              try { rows = JSON.parse(body); }
+              catch (err) { throw { name: "BadResponse", status: resp.status }; }
+              return rows || [];
+            });
+          });
+      }
+
+      function loadCalendarMonth(withRetry) {
+        if (!HOUSEHOLD) return Promise.resolve(false);
+        var requestId = ++state.calendarRequest;
+        var monthTs = state.calendarMonth;
+        var dogId = state.dog;
+        var key = calendarKey();
+        var attempts = withRetry ? 4 : 1;
+        var backoff = [0, 1200, 3000, 6000];
+        state.calendarLoading = true;
+        renderCalendar(Date.now());
+        var attempt = function (i) {
+          return Promise.resolve().then(function () {
+            return fetchCalendarOnce(monthTs, dogId);
+          }).then(function (rows) {
+            if (requestId !== state.calendarRequest || key !== calendarKey()) return false;
+            state.failStreak = 0;
+            state.calendarEntries = rows.map(rowToEntry);
+            state.calendarLoadedKey = key;
+            state.calendarLoading = false;
+            if (state.conn === "error" || state.conn === "boot" || state.conn === "offline") {
+              setConn(rtLive ? "live" : "polling");
+            }
+            renderCalendar(Date.now());
+            return true;
+          }).catch(function (err) {
+            if (requestId !== state.calendarRequest || key !== calendarKey()) return false;
+            if (i + 1 < attempts) {
+              return delay(backoff[i + 1]).then(function () { return attempt(i + 1); });
+            }
+            state.calendarLoading = false;
+            state.failStreak = (state.failStreak || 0) + 1;
+            if (!navigator.onLine) setConn("offline");
+            else setConn("error", describeErr(err));
+            renderCalendar(Date.now());
+            return false;
+          });
+        };
+        return attempt(0);
+      }
+
+      function refreshCalendarIfOpen() {
+        if (state.tab === "calendar") loadCalendarMonth(false);
+      }
+
       function delay(ms) {
         return new Promise(function (resolve) { setTimeout(resolve, ms); });
       }
@@ -1292,6 +1537,7 @@
               setConn(rtLive ? "live" : "polling");
             }
             renderAll();
+            refreshCalendarIfOpen();
             return true;
           }).catch(function (err) {
             if (i + 1 < attempts) {
@@ -1330,6 +1576,7 @@
           state.entries = state.entries.filter(function (x) { return x.id !== oldId; });
         }
         renderAll();
+        refreshCalendarIfOpen();
       }
 
       /* ----- write queue: inserts/updates/deletes flush in order ----- */
@@ -1399,6 +1646,7 @@
           var idx = opQueue.indexOf(op);
           if (idx >= 0) opQueue.splice(idx, 1);
           flushing = false;
+          refreshCalendarIfOpen();
           flushQueue();
         }).catch(function (err) {
           flushing = false;
@@ -1454,6 +1702,7 @@
 
       function deleteEntry(id) {
         state.entries = state.entries.filter(function (x) { return x.id !== id; });
+        state.calendarEntries = state.calendarEntries.filter(function (x) { return x.id !== id; });
         if (state.lastCreatedId === id) state.lastCreatedId = null;
         if (isTempId(id)) {
           cancelledTemps[id] = true;
@@ -1507,6 +1756,7 @@
         if (state.conn === "error" || state.conn === "boot") setConn("boot");
         flushQueue();
         loadEntries(true);
+        if (state.tab === "calendar") loadCalendarMonth(true);
         renderAll();
       });
 
@@ -1563,8 +1813,10 @@
         $("profileSub").textContent = dog.sub;
         $("profileAvatar").textContent = dog.name.charAt(0);
         $("tabActivities").setAttribute("aria-selected", state.tab === "activities" ? "true" : "false");
+        $("tabCalendar").setAttribute("aria-selected", state.tab === "calendar" ? "true" : "false");
         $("tabInsights").setAttribute("aria-selected", state.tab === "insights" ? "true" : "false");
         $("viewActivities").hidden = state.tab !== "activities";
+        $("viewCalendar").hidden = state.tab !== "calendar";
         $("viewInsights").hidden = state.tab !== "insights";
       }
 
@@ -1734,6 +1986,124 @@
         });
       }
 
+      /* ---------- render: calendar ---------- */
+      function calendarDogEntries() {
+        var map = {};
+        var monthStart = state.calendarMonth;
+        var monthEnd = addMonths(monthStart, 1);
+        var list = [];
+        state.calendarEntries.forEach(function (e) {
+          if (e.dog === state.dog && e.ts >= monthStart && e.ts < monthEnd) {
+            map[e.id] = true;
+            list.push(e);
+          }
+        });
+        state.entries.forEach(function (e) {
+          if (e.dog === state.dog && e.ts >= monthStart && e.ts < monthEnd &&
+              !map[e.id] && (e.pending || e.failed || e.unconfirmed || isTempId(e.id))) {
+            list.push(e);
+          }
+        });
+        return list.sort(function (a, b) { return a.ts - b.ts; });
+      }
+
+      function calendarCount(list, dayTs, type) {
+        return list.filter(function (e) {
+          return sameDay(e.ts, dayTs) && (!type || e.type === type);
+        }).length;
+      }
+
+      function renderCalendar(now) {
+        if (!$('monthGrid')) return;
+        var monthDate = new Date(state.calendarMonth);
+        $('monthLabel').textContent = monthDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+        $('calendarLoading').hidden = !state.calendarLoading;
+        var list = calendarDogEntries();
+        var grid = $('monthGrid');
+        grid.innerHTML = '';
+        var first = new Date(state.calendarMonth);
+        var gridStart = new Date(state.calendarMonth);
+        gridStart.setDate(1 - first.getDay());
+        gridStart.setHours(0, 0, 0, 0);
+        for (var i = 0; i < 42; i++) {
+          var d = new Date(gridStart);
+          d.setDate(gridStart.getDate() + i);
+          var dayTs = d.getTime();
+          var inMonth = d.getMonth() === monthDate.getMonth() && d.getFullYear() === monthDate.getFullYear();
+          var pee = inMonth ? calendarCount(list, dayTs, 'pee') : 0;
+          var poop = inMonth ? calendarCount(list, dayTs, 'poop') : 0;
+          var b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'month-day' + (!inMonth ? ' outside' : '') +
+            (sameDay(dayTs, now) ? ' today' : '') +
+            (sameDay(dayTs, state.calendarSelectedDay) ? ' selected' : '');
+          b.setAttribute('aria-label', d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) +
+            (pee || poop ? ', Pee ' + pee + ', Poop ' + poop : ', no potty entries'));
+          b.innerHTML = '<span class="date-num">' + d.getDate() + '</span>' +
+            (pee ? '<span class="day-count pee">Pee ' + pee + '</span>' : '') +
+            (poop ? '<span class="day-count poop">Poop ' + poop + '</span>' : '');
+          (function (pickedTs, pickedInMonth) {
+            b.addEventListener('click', function () {
+              state.calendarSelectedDay = pickedTs;
+              if (!pickedInMonth) {
+                state.calendarMonth = startOfMonth(pickedTs);
+                state.calendarEntries = [];
+                state.calendarLoadedKey = '';
+                renderAll();
+                loadCalendarMonth(true);
+              } else {
+                renderCalendar(Date.now());
+              }
+            });
+          })(dayTs, inMonth);
+          grid.appendChild(b);
+        }
+
+        var selected = state.calendarSelectedDay;
+        $('calendarDayTitle').textContent = sameDay(selected, now)
+          ? "Today's timeline"
+          : new Date(selected).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+        var dayList = list.filter(function (e) { return sameDay(e.ts, selected); });
+        $('calendarDayTotal').textContent = dayList.length ? dayList.length + (dayList.length === 1 ? ' entry' : ' entries') : 'No entries';
+        var counts = $('calendarDayCounts');
+        counts.innerHTML = '';
+        TYPE_ORDER.forEach(function (t) {
+          var chip = document.createElement('div');
+          chip.className = 'day-count-chip';
+          chip.style.setProperty('--chip-color', 'var(--' + t + ')');
+          chip.innerHTML = TYPES[t].icon + '<span>' + TYPES[t].label + '</span><strong>' + calendarCount(list, selected, t) + '</strong>';
+          counts.appendChild(chip);
+        });
+
+        var timeline = $('calendarTimeline');
+        timeline.innerHTML = '';
+        if (!dayList.length) {
+          timeline.innerHTML = '<div class="empty">' +
+            (state.calendarLoading ? 'Updating this month…' : 'Nothing logged on this day.') +
+            '</div>';
+          return;
+        }
+        dayList.forEach(function (e) {
+          var row = document.createElement('button');
+          row.type = 'button';
+          row.className = 'entry calendar-entry';
+          row.setAttribute('aria-label', 'Edit ' + TYPES[e.type].label + ' at ' + fmtClock(e.ts));
+          var noteHtml = '';
+          if (e.note) {
+            noteHtml = '<span class="note">' + ICONS.check + '<span></span></span>';
+          }
+          row.innerHTML = '<span class="dot ' + e.type + '">' + TYPES[e.type].icon + '</span>' +
+            '<span class="mid"><span class="what">' + TYPES[e.type].label + '</span>' + noteHtml + '</span>' +
+            '<span class="when"><span class="exact">' + fmtClock(e.ts) + '</span></span>';
+          if (e.note) row.querySelector('.note span:last-child').textContent = e.note;
+          row.addEventListener('click', function () {
+            if (!findEntry(e.id)) state.entries.push(e);
+            openEdit(e.id, false);
+          });
+          timeline.appendChild(row);
+        });
+      }
+
       /* ---------- render: insights ---------- */
       function renderInsights(now) {
         // Counts grid: today big, last-7-days underneath
@@ -1875,6 +2245,7 @@
         renderChips();
         renderStatus(now);
         renderFeed(now);
+        renderCalendar(now);
         renderInsights(now);
       }
 
@@ -1962,8 +2333,11 @@
           b.querySelector(".sb").textContent = d.sub;
           b.addEventListener("click", function () {
             state.dog = d.id;
+            state.calendarEntries = [];
+            state.calendarLoadedKey = "";
             closeSheets();
             renderAll();
+            if (state.tab === "calendar") loadCalendarMonth(true);
           });
           list.appendChild(b);
         });
@@ -1974,6 +2348,12 @@
       $("tabActivities").addEventListener("click", function () {
         state.tab = "activities";
         renderAll();
+      });
+      $("tabCalendar").addEventListener("click", function () {
+        state.tab = "calendar";
+        renderAll();
+        if (state.calendarLoadedKey !== calendarKey()) loadCalendarMonth(true);
+        else loadCalendarMonth(false);
       });
       $("tabInsights").addEventListener("click", function () {
         state.tab = "insights";
@@ -1990,6 +2370,24 @@
         state.weekOffset++;
         state.selectedDay += 7 * 86400000;
         renderAll();
+      });
+
+      /* ---------- month nav ---------- */
+      $("monthPrev").addEventListener("click", function () {
+        state.calendarMonth = addMonths(state.calendarMonth, -1);
+        state.calendarSelectedDay = state.calendarMonth;
+        state.calendarEntries = [];
+        state.calendarLoadedKey = "";
+        renderAll();
+        loadCalendarMonth(true);
+      });
+      $("monthNext").addEventListener("click", function () {
+        state.calendarMonth = addMonths(state.calendarMonth, 1);
+        state.calendarSelectedDay = state.calendarMonth;
+        state.calendarEntries = [];
+        state.calendarLoadedKey = "";
+        renderAll();
+        loadCalendarMonth(true);
       });
 
       /* ---------- logging + edit page ---------- */
@@ -2058,6 +2456,9 @@
           if (!isNaN(t)) e.ts = Math.min(t, Date.now());
         }
         e.note = $("editNote").value.trim();
+        state.calendarEntries.forEach(function (ce) {
+          if (ce.id === e.id) { ce.ts = e.ts; ce.note = e.note; }
+        });
         persistSave(e);
         var wasNew = state.editingIsNew;
         closeEdit(function () {
