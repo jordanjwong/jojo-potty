@@ -45,6 +45,10 @@
         --walk-bg: #e9f3dc;
         --danger: #c0392b;
         --danger-bg: #fbe7e3;
+        --calendar-accent: #49368f;
+        --calendar-accent-soft: #eeeafd;
+        --calendar-pee: #a100a8;
+        --calendar-poop: #0d9cba;
         --shadow: 0 1px 2px rgba(43, 33, 24, 0.06), 0 6px 18px rgba(43, 33, 24, 0.07);
       }
       @media (prefers-color-scheme: dark) {
@@ -75,6 +79,10 @@
           --walk-bg: #2c3a1e;
           --danger: #ef8a7d;
           --danger-bg: #422320;
+          --calendar-accent: #a99af0;
+          --calendar-accent-soft: #30294b;
+          --calendar-pee: #d45ada;
+          --calendar-poop: #42bdd4;
           --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 6px 18px rgba(0, 0, 0, 0.35);
         }
       }
@@ -541,6 +549,204 @@
       .day-count-chip strong { margin-left: auto; color: var(--ink); font-size: 14px; }
       .calendar-entry .when .rel { display: none; }
 
+      /* Calendar day / week time grids */
+      #viewCalendar { padding-bottom: 72px; }
+      .calendar-range {
+        margin: 16px -16px 0;
+        background: var(--surface);
+        border-top: 1px solid var(--line);
+        border-bottom: 1px solid var(--line);
+      }
+      .calendar-range-head {
+        min-height: 58px;
+        display: grid;
+        grid-template-columns: 52px 1fr 52px;
+        align-items: center;
+        border-bottom: 1px solid var(--line);
+      }
+      .range-nav {
+        height: 100%;
+        border: 0;
+        background: transparent;
+        color: var(--ink-soft);
+        font-size: 34px;
+        font-weight: 400;
+        line-height: 1;
+        cursor: pointer;
+      }
+      .range-title {
+        text-align: center;
+        font-size: 18px;
+        font-weight: 900;
+      }
+      .range-loading {
+        display: block;
+        text-align: center;
+        margin: -10px 0 10px;
+        color: var(--ink-soft);
+        font-size: 12px;
+        font-weight: 700;
+      }
+      .time-grid {
+        --hour-h: 64px;
+        position: relative;
+        height: calc(15 * var(--hour-h) + 1px);
+        background: var(--surface);
+      }
+      .time-label {
+        position: absolute;
+        left: 0;
+        width: 58px;
+        transform: translateY(-50%);
+        color: var(--ink-soft);
+        text-align: right;
+        padding-right: 10px;
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 1;
+      }
+      .time-plot {
+        position: absolute;
+        left: 64px;
+        right: 0;
+        top: 0;
+        height: 100%;
+        border-left: 1px solid var(--line);
+      }
+      .hour-line {
+        position: absolute;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: var(--line);
+      }
+      .calendar-event {
+        position: absolute;
+        z-index: 3;
+        min-height: 34px;
+        border: 0;
+        border-radius: 5px;
+        padding: 6px 7px;
+        color: #fff;
+        text-align: left;
+        font: inherit;
+        font-size: 12.5px;
+        font-weight: 900;
+        line-height: 1.05;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        cursor: pointer;
+        box-shadow: 0 1px 2px rgba(0,0,0,.12);
+        -webkit-tap-highlight-color: transparent;
+      }
+      .calendar-event.pee { background: var(--calendar-pee); }
+      .calendar-event.poop { background: var(--calendar-poop); }
+      .calendar-event.eat { background: var(--eat); }
+      .calendar-event.drink { background: var(--drink); }
+      .calendar-event.play { background: var(--play); }
+      .calendar-event.walk { background: var(--walk); }
+      .calendar-event:active { filter: brightness(.88); }
+      .now-line {
+        position: absolute;
+        left: 0;
+        right: 0;
+        z-index: 5;
+        height: 2px;
+        background: var(--calendar-accent);
+        pointer-events: none;
+      }
+      .now-line::before {
+        content: "";
+        position: absolute;
+        left: -6px;
+        top: -5px;
+        width: 11px;
+        height: 11px;
+        border-radius: 50%;
+        background: var(--calendar-accent);
+      }
+      .week-day-heads {
+        display: grid;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        margin-left: 64px;
+        background: var(--surface);
+        border-bottom: 1px solid var(--line);
+      }
+      .week-day-head {
+        min-width: 0;
+        padding: 8px 1px 7px;
+        text-align: center;
+        color: var(--ink-soft);
+        font-size: 9px;
+        font-weight: 900;
+        line-height: 1.15;
+        border-left: 1px solid var(--line);
+      }
+      .week-day-head strong { display: block; margin-top: 2px; color: var(--ink); font-size: 12px; }
+      .week-day-head.today strong {
+        width: 22px;
+        height: 22px;
+        margin: 2px auto 0;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        background: var(--calendar-accent);
+        color: #fff;
+      }
+      .week-time-grid .time-plot {
+        background-image: linear-gradient(to right, transparent calc(100% - 1px), var(--line) calc(100% - 1px));
+        background-size: calc(100% / 7) 100%;
+      }
+      .week-time-grid .calendar-event {
+        min-height: 28px;
+        padding: 5px 2px;
+        border-radius: 4px;
+        font-size: 8px;
+        text-align: center;
+      }
+      .calendar-switch {
+        position: fixed;
+        left: 50%;
+        bottom: calc(74px + env(safe-area-inset-bottom));
+        transform: translateX(-50%);
+        z-index: 14;
+        width: 100%;
+        max-width: 560px;
+        min-height: 62px;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        background: var(--surface);
+        border-top: 1px solid var(--line);
+        box-shadow: 0 -4px 16px rgba(43, 33, 24, .08);
+      }
+      .calendar-switch button {
+        position: relative;
+        border: 0;
+        background: transparent;
+        color: var(--ink-soft);
+        padding: 9px 4px 7px;
+        cursor: pointer;
+        font-weight: 800;
+        font-size: 13px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 2px;
+      }
+      .calendar-switch button svg { width: 23px; height: 23px; }
+      .calendar-switch button[aria-selected="true"] { color: var(--calendar-accent); }
+      .calendar-switch button[aria-selected="true"]::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 22%;
+        right: 22%;
+        height: 3px;
+        border-radius: 0 0 3px 3px;
+        background: var(--calendar-accent);
+      }
+
       /* ---------- Insights ---------- */
       .counts-grid {
         display: grid;
@@ -930,6 +1136,11 @@
         .month-day { min-height: 68px; padding-left: 2px; padding-right: 2px; }
         .day-count { font-size: 8.5px; padding-left: 2px; padding-right: 2px; }
         .day-counts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .time-label { width: 50px; padding-right: 8px; font-size: 11px; }
+        .time-plot { left: 54px; }
+        .week-day-heads { margin-left: 54px; }
+        .week-time-grid .calendar-event { font-size: 0; }
+        .week-time-grid .calendar-event::first-letter { font-size: 9px; }
       }
       @media (prefers-reduced-motion: reduce) {
         .sheet, .toast, .entry { transition: none; }
@@ -1033,27 +1244,69 @@
 
       <!-- ============ CALENDAR VIEW ============ -->
       <div id="viewCalendar" hidden>
-        <div class="month-card">
-          <div class="month-head">
-            <button class="month-nav" id="monthPrev" type="button" aria-label="Previous month">‹</button>
-            <span class="m" id="monthLabel">—</span>
-            <button class="month-nav" id="monthNext" type="button" aria-label="Next month">›</button>
+        <div id="calendarDayView">
+          <div class="calendar-range">
+            <div class="calendar-range-head">
+              <button class="range-nav" id="dayPrev" type="button" aria-label="Previous day">‹</button>
+              <span class="range-title" id="dayLabel">—</span>
+              <button class="range-nav" id="dayNext" type="button" aria-label="Next day">›</button>
+            </div>
+            <span class="range-loading" id="dayLoading" hidden>Updating this day…</span>
+            <div class="time-grid" id="dayTimeGrid"></div>
           </div>
-          <div class="month-weekdays" aria-hidden="true">
-            <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
-          </div>
-          <div class="month-grid" id="monthGrid"></div>
-          <p class="calendar-loading" id="calendarLoading" hidden>Updating this month…</p>
         </div>
 
-        <section class="day-detail">
-          <div class="day-detail-head">
-            <h3 id="calendarDayTitle">—</h3>
-            <span id="calendarDayTotal"></span>
+        <div id="calendarWeekView" hidden>
+          <div class="calendar-range">
+            <div class="calendar-range-head">
+              <button class="range-nav" id="calendarWeekPrev" type="button" aria-label="Previous week">‹</button>
+              <span class="range-title" id="calendarWeekLabel">—</span>
+              <button class="range-nav" id="calendarWeekNext" type="button" aria-label="Next week">›</button>
+            </div>
+            <span class="range-loading" id="weekLoading" hidden>Updating this week…</span>
+            <div class="week-day-heads" id="calendarWeekHeads"></div>
+            <div class="time-grid week-time-grid" id="weekTimeGrid"></div>
           </div>
-          <div class="day-counts" id="calendarDayCounts"></div>
-          <div id="calendarTimeline"></div>
-        </section>
+        </div>
+
+        <div id="calendarMonthView" hidden>
+          <div class="month-card">
+            <div class="month-head">
+              <button class="month-nav" id="monthPrev" type="button" aria-label="Previous month">‹</button>
+              <span class="m" id="monthLabel">—</span>
+              <button class="month-nav" id="monthNext" type="button" aria-label="Next month">›</button>
+            </div>
+            <div class="month-weekdays" aria-hidden="true">
+              <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
+            </div>
+            <div class="month-grid" id="monthGrid"></div>
+            <p class="calendar-loading" id="calendarLoading" hidden>Updating this month…</p>
+          </div>
+
+          <section class="day-detail">
+            <div class="day-detail-head">
+              <h3 id="calendarDayTitle">—</h3>
+              <span id="calendarDayTotal"></span>
+            </div>
+            <div class="day-counts" id="calendarDayCounts"></div>
+            <div id="calendarTimeline"></div>
+          </section>
+        </div>
+
+        <nav class="calendar-switch" id="calendarSwitch" aria-label="Calendar range">
+          <button type="button" id="calendarModeMonth" aria-selected="false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4M8 13h.01M12 13h.01M16 13h.01M8 17h.01M12 17h.01M16 17h.01" stroke-linecap="round"/></svg>
+            Month
+          </button>
+          <button type="button" id="calendarModeWeek" aria-selected="false">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="5" width="18" height="15" rx="2"/><path d="M7 5v15M11 5v15M15 5v15M19 5v15"/></svg>
+            Week
+          </button>
+          <button type="button" id="calendarModeDay" aria-selected="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M4 8h16"/></svg>
+            Day
+          </button>
+        </nav>
       </div>
 
       <!-- ============ INSIGHTS VIEW ============ -->
@@ -1234,6 +1487,7 @@
         seq: 0,
         weekOffset: 0,
         selectedDay: startOfDay(Date.now()),
+        calendarMode: "day",
         calendarMonth: startOfMonth(Date.now()),
         calendarSelectedDay: startOfDay(Date.now()),
         calendarEntries: [],
@@ -1267,6 +1521,17 @@
         d.setDate(1);
         d.setMonth(d.getMonth() + amount);
         d.setHours(0, 0, 0, 0);
+        return d.getTime();
+      }
+      function addDays(ts, amount) {
+        var d = new Date(ts);
+        d.setDate(d.getDate() + amount);
+        d.setHours(0, 0, 0, 0);
+        return d.getTime();
+      }
+      function startOfWeek(ts) {
+        var d = new Date(startOfDay(ts));
+        d.setDate(d.getDate() - d.getDay());
         return d.getTime();
       }
       function fmtClock(ts) {
@@ -1447,18 +1712,29 @@
           });
       }
 
-      function calendarKey() {
-        return state.dog + ":" + new Date(state.calendarMonth).getFullYear() + ":" + new Date(state.calendarMonth).getMonth();
+      function calendarRange() {
+        if (state.calendarMode === "month") {
+          return { start: state.calendarMonth, end: addMonths(state.calendarMonth, 1) };
+        }
+        if (state.calendarMode === "week") {
+          var weekStart = startOfWeek(state.calendarSelectedDay);
+          return { start: weekStart, end: addDays(weekStart, 7) };
+        }
+        return { start: state.calendarSelectedDay, end: addDays(state.calendarSelectedDay, 1) };
       }
 
-      function fetchCalendarOnce(monthTs, dogId) {
-        var nextMonth = addMonths(monthTs, 1);
+      function calendarKey() {
+        var range = calendarRange();
+        return state.dog + ":" + state.calendarMode + ":" + range.start + ":" + range.end;
+      }
+
+      function fetchCalendarOnce(rangeStart, rangeEnd, dogId) {
         var url = SB_REST +
           "?select=id,household,dog,activity,occurred_at,note" +
           "&household=eq." + encodeURIComponent(HOUSEHOLD) +
           "&dog=eq." + encodeURIComponent(dogId) +
-          "&occurred_at=gte." + encodeURIComponent(new Date(monthTs).toISOString()) +
-          "&occurred_at=lt." + encodeURIComponent(new Date(nextMonth).toISOString()) +
+          "&occurred_at=gte." + encodeURIComponent(new Date(rangeStart).toISOString()) +
+          "&occurred_at=lt." + encodeURIComponent(new Date(rangeEnd).toISOString()) +
           "&order=occurred_at.asc&limit=1000";
         return fetchWithTimeout(url, { headers: sbHeaders() }, 12000)
           .then(function (resp) {
@@ -1472,10 +1748,10 @@
           });
       }
 
-      function loadCalendarMonth(withRetry) {
+      function loadCalendarRange(withRetry) {
         if (!HOUSEHOLD) return Promise.resolve(false);
         var requestId = ++state.calendarRequest;
-        var monthTs = state.calendarMonth;
+        var range = calendarRange();
         var dogId = state.dog;
         var key = calendarKey();
         var attempts = withRetry ? 4 : 1;
@@ -1484,7 +1760,7 @@
         renderCalendar(Date.now());
         var attempt = function (i) {
           return Promise.resolve().then(function () {
-            return fetchCalendarOnce(monthTs, dogId);
+            return fetchCalendarOnce(range.start, range.end, dogId);
           }).then(function (rows) {
             if (requestId !== state.calendarRequest || key !== calendarKey()) return false;
             state.failStreak = 0;
@@ -1513,7 +1789,7 @@
       }
 
       function refreshCalendarIfOpen() {
-        if (state.tab === "calendar") loadCalendarMonth(false);
+        if (state.tab === "calendar") loadCalendarRange(false);
       }
 
       function delay(ms) {
@@ -1756,7 +2032,7 @@
         if (state.conn === "error" || state.conn === "boot") setConn("boot");
         flushQueue();
         loadEntries(true);
-        if (state.tab === "calendar") loadCalendarMonth(true);
+        if (state.tab === "calendar") loadCalendarRange(true);
         renderAll();
       });
 
@@ -1989,17 +2265,16 @@
       /* ---------- render: calendar ---------- */
       function calendarDogEntries() {
         var map = {};
-        var monthStart = state.calendarMonth;
-        var monthEnd = addMonths(monthStart, 1);
+        var range = calendarRange();
         var list = [];
         state.calendarEntries.forEach(function (e) {
-          if (e.dog === state.dog && e.ts >= monthStart && e.ts < monthEnd) {
+          if (e.dog === state.dog && e.ts >= range.start && e.ts < range.end) {
             map[e.id] = true;
             list.push(e);
           }
         });
         state.entries.forEach(function (e) {
-          if (e.dog === state.dog && e.ts >= monthStart && e.ts < monthEnd &&
+          if (e.dog === state.dog && e.ts >= range.start && e.ts < range.end &&
               !map[e.id] && (e.pending || e.failed || e.unconfirmed || isTempId(e.id))) {
             list.push(e);
           }
@@ -2013,14 +2288,137 @@
         }).length;
       }
 
-      function renderCalendar(now) {
-        if (!$('monthGrid')) return;
+      function calendarEventButton(e, className) {
+        var b = document.createElement("button");
+        b.type = "button";
+        b.className = "calendar-event " + e.type + (className ? " " + className : "");
+        b.textContent = TYPES[e.type].label;
+        b.setAttribute("aria-label", "Edit " + TYPES[e.type].label + " at " + fmtClock(e.ts));
+        b.title = TYPES[e.type].label + " · " + fmtClock(e.ts);
+        b.addEventListener("click", function () {
+          if (!findEntry(e.id)) state.entries.push(e);
+          openEdit(e.id, false);
+        });
+        return b;
+      }
+
+      function hourLabel(hour) {
+        var n = hour % 12 || 12;
+        return n + (hour < 12 ? " am" : " pm");
+      }
+
+      function buildTimeGrid(grid) {
+        grid.innerHTML = "";
+        for (var i = 0; i <= 15; i++) {
+          var label = document.createElement("span");
+          label.className = "time-label";
+          label.style.top = (i * 64) + "px";
+          label.textContent = hourLabel(6 + i);
+          grid.appendChild(label);
+        }
+        var plot = document.createElement("div");
+        plot.className = "time-plot";
+        for (var j = 0; j <= 15; j++) {
+          var line = document.createElement("span");
+          line.className = "hour-line";
+          line.style.top = (j * 64) + "px";
+          plot.appendChild(line);
+        }
+        grid.appendChild(plot);
+        return plot;
+      }
+
+      function eventTop(ts) {
+        var d = new Date(ts);
+        return (((d.getHours() * 60 + d.getMinutes()) - 360) / 60) * 64;
+      }
+
+      function inTimeGrid(e) {
+        var d = new Date(e.ts);
+        var mins = d.getHours() * 60 + d.getMinutes();
+        return mins >= 360 && mins < 1260;
+      }
+
+      function renderDayCalendar(now, list) {
+        var selected = state.calendarSelectedDay;
+        $("dayLabel").textContent = new Date(selected).toLocaleDateString(undefined, {
+          month: "short", day: "numeric", year: "numeric"
+        });
+        $("dayLoading").hidden = !state.calendarLoading;
+        var grid = $("dayTimeGrid");
+        var plot = buildTimeGrid(grid);
+        var dayList = list.filter(function (e) { return sameDay(e.ts, selected) && inTimeGrid(e); });
+
+        var clusters = [];
+        dayList.forEach(function (e) {
+          var last = clusters.length ? clusters[clusters.length - 1] : null;
+          if (!last || e.ts - last[last.length - 1].ts >= 45 * 60000) clusters.push([e]);
+          else last.push(e);
+        });
+        clusters.forEach(function (cluster) {
+          cluster.forEach(function (e, index) {
+            var b = calendarEventButton(e, "day-event");
+            b.style.top = Math.max(0, Math.min(926, eventTop(e.ts))) + "px";
+            if (cluster.length > 1) {
+              b.style.left = "calc(" + ((index % 2) * 50) + "% + 1px)";
+              b.style.width = "calc(50% - 2px)";
+            } else {
+              b.style.left = "1px";
+              b.style.width = "calc(100% - 3px)";
+            }
+            plot.appendChild(b);
+          });
+        });
+
+        if (sameDay(selected, now)) {
+          var current = new Date(now);
+          var mins = current.getHours() * 60 + current.getMinutes();
+          if (mins >= 360 && mins <= 1260) {
+            var nowLine = document.createElement("span");
+            nowLine.className = "now-line";
+            nowLine.style.top = (((mins - 360) / 60) * 64) + "px";
+            plot.appendChild(nowLine);
+          }
+        }
+      }
+
+      function renderWeekCalendar(now, list) {
+        var weekStart = startOfWeek(state.calendarSelectedDay);
+        var weekEnd = addDays(weekStart, 6);
+        var startDate = new Date(weekStart);
+        var endDate = new Date(weekEnd);
+        $("calendarWeekLabel").textContent = startDate.toLocaleDateString(undefined, { month: "short", day: "numeric" }) +
+          " – " + endDate.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+        $("weekLoading").hidden = !state.calendarLoading;
+        var heads = $("calendarWeekHeads");
+        heads.innerHTML = "";
+        for (var i = 0; i < 7; i++) {
+          var dayTs = addDays(weekStart, i);
+          var d = new Date(dayTs);
+          var head = document.createElement("span");
+          head.className = "week-day-head" + (sameDay(dayTs, now) ? " today" : "");
+          head.innerHTML = d.toLocaleDateString(undefined, { weekday: "short" }).slice(0, 2) + "<strong>" + d.getDate() + "</strong>";
+          heads.appendChild(head);
+        }
+        var grid = $("weekTimeGrid");
+        var plot = buildTimeGrid(grid);
+        list.filter(inTimeGrid).forEach(function (e) {
+          var dayIndex = Math.round((startOfDay(e.ts) - weekStart) / 86400000);
+          if (dayIndex < 0 || dayIndex > 6) return;
+          var b = calendarEventButton(e, "week-event");
+          b.style.top = Math.max(0, Math.min(932, eventTop(e.ts))) + "px";
+          b.style.left = "calc(" + (dayIndex * 100 / 7) + "% + 2px)";
+          b.style.width = "calc(" + (100 / 7) + "% - 4px)";
+          plot.appendChild(b);
+        });
+      }
+
+      function renderMonthCalendar(now, list) {
         var monthDate = new Date(state.calendarMonth);
-        $('monthLabel').textContent = monthDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
-        $('calendarLoading').hidden = !state.calendarLoading;
-        var list = calendarDogEntries();
-        var grid = $('monthGrid');
-        grid.innerHTML = '';
+        $("monthLabel").textContent = monthDate.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+        $("calendarLoading").hidden = !state.calendarLoading;
+        var grid = $("monthGrid");
+        grid.innerHTML = "";
         var first = new Date(state.calendarMonth);
         var gridStart = new Date(state.calendarMonth);
         gridStart.setDate(1 - first.getDay());
@@ -2030,27 +2428,27 @@
           d.setDate(gridStart.getDate() + i);
           var dayTs = d.getTime();
           var inMonth = d.getMonth() === monthDate.getMonth() && d.getFullYear() === monthDate.getFullYear();
-          var pee = inMonth ? calendarCount(list, dayTs, 'pee') : 0;
-          var poop = inMonth ? calendarCount(list, dayTs, 'poop') : 0;
-          var b = document.createElement('button');
-          b.type = 'button';
-          b.className = 'month-day' + (!inMonth ? ' outside' : '') +
-            (sameDay(dayTs, now) ? ' today' : '') +
-            (sameDay(dayTs, state.calendarSelectedDay) ? ' selected' : '');
-          b.setAttribute('aria-label', d.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }) +
-            (pee || poop ? ', Pee ' + pee + ', Poop ' + poop : ', no potty entries'));
-          b.innerHTML = '<span class="date-num">' + d.getDate() + '</span>' +
-            (pee ? '<span class="day-count pee">Pee ' + pee + '</span>' : '') +
-            (poop ? '<span class="day-count poop">Poop ' + poop + '</span>' : '');
+          var pee = inMonth ? calendarCount(list, dayTs, "pee") : 0;
+          var poop = inMonth ? calendarCount(list, dayTs, "poop") : 0;
+          var b = document.createElement("button");
+          b.type = "button";
+          b.className = "month-day" + (!inMonth ? " outside" : "") +
+            (sameDay(dayTs, now) ? " today" : "") +
+            (sameDay(dayTs, state.calendarSelectedDay) ? " selected" : "");
+          b.setAttribute("aria-label", d.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" }) +
+            (pee || poop ? ", Pee " + pee + ", Poop " + poop : ", no potty entries"));
+          b.innerHTML = '<span class="date-num">' + d.getDate() + "</span>" +
+            (pee ? '<span class="day-count pee">Pee ' + pee + "</span>" : "") +
+            (poop ? '<span class="day-count poop">Poop ' + poop + "</span>" : "");
           (function (pickedTs, pickedInMonth) {
-            b.addEventListener('click', function () {
+            b.addEventListener("click", function () {
               state.calendarSelectedDay = pickedTs;
               if (!pickedInMonth) {
                 state.calendarMonth = startOfMonth(pickedTs);
                 state.calendarEntries = [];
-                state.calendarLoadedKey = '';
+                state.calendarLoadedKey = "";
                 renderAll();
-                loadCalendarMonth(true);
+                loadCalendarRange(true);
               } else {
                 renderCalendar(Date.now());
               }
@@ -2060,48 +2458,61 @@
         }
 
         var selected = state.calendarSelectedDay;
-        $('calendarDayTitle').textContent = sameDay(selected, now)
+        $("calendarDayTitle").textContent = sameDay(selected, now)
           ? "Today's timeline"
-          : new Date(selected).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+          : new Date(selected).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
         var dayList = list.filter(function (e) { return sameDay(e.ts, selected); });
-        $('calendarDayTotal').textContent = dayList.length ? dayList.length + (dayList.length === 1 ? ' entry' : ' entries') : 'No entries';
-        var counts = $('calendarDayCounts');
-        counts.innerHTML = '';
+        $("calendarDayTotal").textContent = dayList.length ? dayList.length + (dayList.length === 1 ? " entry" : " entries") : "No entries";
+        var counts = $("calendarDayCounts");
+        counts.innerHTML = "";
         TYPE_ORDER.forEach(function (t) {
-          var chip = document.createElement('div');
-          chip.className = 'day-count-chip';
-          chip.style.setProperty('--chip-color', 'var(--' + t + ')');
-          chip.innerHTML = TYPES[t].icon + '<span>' + TYPES[t].label + '</span><strong>' + calendarCount(list, selected, t) + '</strong>';
+          var chip = document.createElement("div");
+          chip.className = "day-count-chip";
+          chip.style.setProperty("--chip-color", "var(--" + t + ")");
+          chip.innerHTML = TYPES[t].icon + "<span>" + TYPES[t].label + "</span><strong>" + calendarCount(list, selected, t) + "</strong>";
           counts.appendChild(chip);
         });
 
-        var timeline = $('calendarTimeline');
-        timeline.innerHTML = '';
+        var timeline = $("calendarTimeline");
+        timeline.innerHTML = "";
         if (!dayList.length) {
           timeline.innerHTML = '<div class="empty">' +
-            (state.calendarLoading ? 'Updating this month…' : 'Nothing logged on this day.') +
-            '</div>';
+            (state.calendarLoading ? "Updating this month…" : "Nothing logged on this day.") +
+            "</div>";
           return;
         }
         dayList.forEach(function (e) {
-          var row = document.createElement('button');
-          row.type = 'button';
-          row.className = 'entry calendar-entry';
-          row.setAttribute('aria-label', 'Edit ' + TYPES[e.type].label + ' at ' + fmtClock(e.ts));
-          var noteHtml = '';
-          if (e.note) {
-            noteHtml = '<span class="note">' + ICONS.check + '<span></span></span>';
-          }
-          row.innerHTML = '<span class="dot ' + e.type + '">' + TYPES[e.type].icon + '</span>' +
-            '<span class="mid"><span class="what">' + TYPES[e.type].label + '</span>' + noteHtml + '</span>' +
-            '<span class="when"><span class="exact">' + fmtClock(e.ts) + '</span></span>';
-          if (e.note) row.querySelector('.note span:last-child').textContent = e.note;
-          row.addEventListener('click', function () {
+          var row = document.createElement("button");
+          row.type = "button";
+          row.className = "entry calendar-entry";
+          row.setAttribute("aria-label", "Edit " + TYPES[e.type].label + " at " + fmtClock(e.ts));
+          var noteHtml = "";
+          if (e.note) noteHtml = '<span class="note">' + ICONS.check + "<span></span></span>";
+          row.innerHTML = '<span class="dot ' + e.type + '">' + TYPES[e.type].icon + "</span>" +
+            '<span class="mid"><span class="what">' + TYPES[e.type].label + "</span>" + noteHtml + "</span>" +
+            '<span class="when"><span class="exact">' + fmtClock(e.ts) + "</span></span>";
+          if (e.note) row.querySelector(".note span:last-child").textContent = e.note;
+          row.addEventListener("click", function () {
             if (!findEntry(e.id)) state.entries.push(e);
             openEdit(e.id, false);
           });
           timeline.appendChild(row);
         });
+      }
+
+      function renderCalendar(now) {
+        if (!$("monthGrid")) return;
+        var mode = state.calendarMode;
+        $("calendarDayView").hidden = mode !== "day";
+        $("calendarWeekView").hidden = mode !== "week";
+        $("calendarMonthView").hidden = mode !== "month";
+        $("calendarModeDay").setAttribute("aria-selected", mode === "day" ? "true" : "false");
+        $("calendarModeWeek").setAttribute("aria-selected", mode === "week" ? "true" : "false");
+        $("calendarModeMonth").setAttribute("aria-selected", mode === "month" ? "true" : "false");
+        var list = calendarDogEntries();
+        if (mode === "day") renderDayCalendar(now, list);
+        else if (mode === "week") renderWeekCalendar(now, list);
+        else renderMonthCalendar(now, list);
       }
 
       /* ---------- render: insights ---------- */
@@ -2337,7 +2748,7 @@
             state.calendarLoadedKey = "";
             closeSheets();
             renderAll();
-            if (state.tab === "calendar") loadCalendarMonth(true);
+            if (state.tab === "calendar") loadCalendarRange(true);
           });
           list.appendChild(b);
         });
@@ -2352,8 +2763,8 @@
       $("tabCalendar").addEventListener("click", function () {
         state.tab = "calendar";
         renderAll();
-        if (state.calendarLoadedKey !== calendarKey()) loadCalendarMonth(true);
-        else loadCalendarMonth(false);
+        if (state.calendarLoadedKey !== calendarKey()) loadCalendarRange(true);
+        else loadCalendarRange(false);
       });
       $("tabInsights").addEventListener("click", function () {
         state.tab = "insights";
@@ -2372,6 +2783,49 @@
         renderAll();
       });
 
+      /* ---------- calendar range switcher + navigation ---------- */
+      function setCalendarMode(mode) {
+        state.calendarMode = mode;
+        if (mode === "month") state.calendarMonth = startOfMonth(state.calendarSelectedDay);
+        state.calendarEntries = [];
+        state.calendarLoadedKey = "";
+        renderAll();
+        loadCalendarRange(true);
+      }
+      $("calendarModeDay").addEventListener("click", function () { setCalendarMode("day"); });
+      $("calendarModeWeek").addEventListener("click", function () { setCalendarMode("week"); });
+      $("calendarModeMonth").addEventListener("click", function () { setCalendarMode("month"); });
+      $("dayPrev").addEventListener("click", function () {
+        state.calendarSelectedDay = addDays(state.calendarSelectedDay, -1);
+        state.calendarMonth = startOfMonth(state.calendarSelectedDay);
+        state.calendarEntries = [];
+        state.calendarLoadedKey = "";
+        renderAll();
+        loadCalendarRange(true);
+      });
+      $("dayNext").addEventListener("click", function () {
+        state.calendarSelectedDay = addDays(state.calendarSelectedDay, 1);
+        state.calendarMonth = startOfMonth(state.calendarSelectedDay);
+        state.calendarEntries = [];
+        state.calendarLoadedKey = "";
+        renderAll();
+        loadCalendarRange(true);
+      });
+      $("calendarWeekPrev").addEventListener("click", function () {
+        state.calendarSelectedDay = addDays(state.calendarSelectedDay, -7);
+        state.calendarEntries = [];
+        state.calendarLoadedKey = "";
+        renderAll();
+        loadCalendarRange(true);
+      });
+      $("calendarWeekNext").addEventListener("click", function () {
+        state.calendarSelectedDay = addDays(state.calendarSelectedDay, 7);
+        state.calendarEntries = [];
+        state.calendarLoadedKey = "";
+        renderAll();
+        loadCalendarRange(true);
+      });
+
       /* ---------- month nav ---------- */
       $("monthPrev").addEventListener("click", function () {
         state.calendarMonth = addMonths(state.calendarMonth, -1);
@@ -2379,7 +2833,7 @@
         state.calendarEntries = [];
         state.calendarLoadedKey = "";
         renderAll();
-        loadCalendarMonth(true);
+        loadCalendarRange(true);
       });
       $("monthNext").addEventListener("click", function () {
         state.calendarMonth = addMonths(state.calendarMonth, 1);
@@ -2387,7 +2841,7 @@
         state.calendarEntries = [];
         state.calendarLoadedKey = "";
         renderAll();
-        loadCalendarMonth(true);
+        loadCalendarRange(true);
       });
 
       /* ---------- logging + edit page ---------- */
