@@ -623,7 +623,7 @@
       .calendar-event {
         position: absolute;
         z-index: 3;
-        min-height: 30px;
+        min-height: 0;
         border: 0;
         border-radius: 6px;
         padding: 4px 6px;
@@ -635,6 +635,18 @@
         cursor: pointer;
         box-shadow: 0 1px 2px rgba(0,0,0,.14);
         -webkit-tap-highlight-color: transparent;
+      }
+      .calendar-event.point-event {
+        height: 24px;
+        min-height: 24px;
+        border-radius: 999px;
+        padding: 4px 8px;
+        display: flex;
+        align-items: center;
+      }
+      .calendar-event.point-event .event-label {
+        font-size: 10.5px;
+        line-height: 1;
       }
       .calendar-event .event-label {
         display: block;
@@ -713,12 +725,19 @@
         background-size: calc(100% / 7) 100%;
       }
       .week-time-grid .calendar-event {
-        min-height: 28px;
+        min-height: 0;
         padding: 3px 2px;
         border-radius: 4px;
         text-align: center;
       }
+      .week-time-grid .calendar-event.point-event {
+        height: 20px;
+        min-height: 20px;
+        border-radius: 999px;
+        padding: 2px 3px;
+      }
       .week-time-grid .calendar-event .event-label { font-size: 8px; }
+      .week-time-grid .calendar-event.point-event .event-label { font-size: 7px; }
       .week-time-grid .calendar-event .event-time { font-size: 6.5px; margin-top: 1px; }
       .calendar-switch {
         position: fixed;
@@ -2383,15 +2402,23 @@
 
       function calendarEventButton(item, className) {
         var e = item.entry;
+        var isPoint = e.type !== "walk";
         var b = document.createElement("button");
         b.type = "button";
-        b.className = "calendar-event " + e.type + (className ? " " + className : "");
-        var rangeText = compactClock(item.start) + "–" + compactClock(item.end);
-        b.innerHTML = '<span class="event-label"></span><span class="event-time"></span>';
-        b.querySelector(".event-label").textContent = TYPES[e.type].label;
-        b.querySelector(".event-time").textContent = rangeText;
-        b.setAttribute("aria-label", "Edit " + TYPES[e.type].label + " from " + fmtClock(item.start) + " to " + fmtClock(item.end));
-        b.title = TYPES[e.type].label + " · " + rangeText;
+        b.className = "calendar-event " + e.type + (isPoint ? " point-event" : " duration-event") + (className ? " " + className : "");
+        if (isPoint) {
+          var pointTime = fmtClock(item.start).toLowerCase();
+          b.innerHTML = '<span class="event-label"></span>';
+          b.querySelector(".event-label").textContent = TYPES[e.type].label + " · " + pointTime;
+          b.setAttribute("aria-label", "Edit " + TYPES[e.type].label + " at " + fmtClock(item.start));
+          b.title = TYPES[e.type].label + " · " + pointTime;
+        } else {
+          var rangeText = compactClock(item.start) + "–" + compactClock(item.end);
+          b.innerHTML = '<span class="event-label"></span>';
+          b.querySelector(".event-label").textContent = TYPES[e.type].label + " · " + rangeText;
+          b.setAttribute("aria-label", "Edit " + TYPES[e.type].label + " from " + fmtClock(item.start) + " to " + fmtClock(item.end));
+          b.title = TYPES[e.type].label + " · " + rangeText;
+        }
         b.addEventListener("click", function () {
           if (!findEntry(e.id)) state.entries.push(e);
           openEdit(e.id, false);
@@ -2436,26 +2463,29 @@
         return mins >= 360 && mins < 1260;
       }
 
-      // Build visual ranges. Point activities occupy 25 minutes. A walk uses
-      // its saved end; legacy walks without one grow to include activities
-      // logged in the following hour, while remaining at least 30 minutes tall.
+      // Point activities have one exact timestamp and no duration. Walks use
+      // their saved end; legacy walks without one keep the 30-minute default
+      // and grow only far enough to include Pee/Poop logged in the next hour.
       function calendarRanges(dayList) {
         return dayList.map(function (e) {
-          var end = e.ts + 25 * 60000;
-          if (e.type === "walk") {
+          var isPoint = e.type !== "walk";
+          var end = e.ts;
+          if (!isPoint) {
             if (e.endTs && e.endTs > e.ts) {
               end = e.endTs;
             } else {
               end = e.ts + 30 * 60000;
               dayList.forEach(function (other) {
-                if (other.id !== e.id && other.ts >= e.ts && other.ts <= e.ts + 60 * 60000) {
-                  end = Math.max(end, other.ts + 25 * 60000);
+                if (other.id !== e.id && isPotty(other) && other.ts >= e.ts && other.ts <= e.ts + 60 * 60000) {
+                  end = Math.max(end, other.ts);
                 }
               });
             }
           }
-          var layoutEnd = e.type === "walk" ? Math.max(end, e.ts + 30 * 60000) : end;
-          return { entry: e, start: e.ts, end: end, layoutEnd: layoutEnd, col: 0, cols: 1 };
+          // One millisecond makes simultaneous points collide for column
+          // assignment without pretending they occupy time on the grid.
+          var layoutEnd = isPoint ? e.ts + 1 : end;
+          return { entry: e, start: e.ts, end: end, layoutEnd: layoutEnd, isPoint: isPoint, col: 0, cols: 1 };
         }).sort(function (a, b) {
           return a.start - b.start || b.end - a.end;
         });
@@ -2495,9 +2525,13 @@
 
       function placeCalendarEvent(plot, item, leftPct, widthPct, className) {
         var b = calendarEventButton(item, className);
-        var top = Math.max(0, Math.min(959, eventTop(item.start)));
-        var naturalHeight = ((item.layoutEnd - item.start) / 60000 / 60) * 64;
-        var height = Math.max(item.entry.type === "walk" ? 32 : 30, naturalHeight);
+        var exactTop = eventTop(item.start);
+        var pointHeight = className === "week-event" ? 20 : 24;
+        var top = item.isPoint ? exactTop - pointHeight / 2 : exactTop;
+        top = Math.max(0, Math.min(959, top));
+        var height = item.isPoint
+          ? pointHeight
+          : Math.max(8, ((item.end - item.start) / 60000 / 60) * 64);
         height = Math.min(height, 960 - top);
         b.style.top = top + "px";
         b.style.height = height + "px";
