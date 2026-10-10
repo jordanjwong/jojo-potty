@@ -623,22 +623,36 @@
       .calendar-event {
         position: absolute;
         z-index: 3;
-        min-height: 34px;
+        min-height: 30px;
         border: 0;
-        border-radius: 5px;
-        padding: 6px 7px;
+        border-radius: 6px;
+        padding: 4px 6px;
         color: #fff;
         text-align: left;
         font: inherit;
-        font-size: 12.5px;
-        font-weight: 900;
         line-height: 1.05;
+        overflow: hidden;
+        cursor: pointer;
+        box-shadow: 0 1px 2px rgba(0,0,0,.14);
+        -webkit-tap-highlight-color: transparent;
+      }
+      .calendar-event .event-label {
+        display: block;
         overflow: hidden;
         white-space: nowrap;
         text-overflow: ellipsis;
-        cursor: pointer;
-        box-shadow: 0 1px 2px rgba(0,0,0,.12);
-        -webkit-tap-highlight-color: transparent;
+        font-size: 12px;
+        font-weight: 900;
+      }
+      .calendar-event .event-time {
+        display: block;
+        margin-top: 2px;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+        font-size: 9.5px;
+        font-weight: 800;
+        opacity: .9;
       }
       .calendar-event.pee { background: var(--calendar-pee); }
       .calendar-event.poop { background: var(--calendar-poop); }
@@ -700,11 +714,12 @@
       }
       .week-time-grid .calendar-event {
         min-height: 28px;
-        padding: 5px 2px;
+        padding: 3px 2px;
         border-radius: 4px;
-        font-size: 8px;
         text-align: center;
       }
+      .week-time-grid .calendar-event .event-label { font-size: 8px; }
+      .week-time-grid .calendar-event .event-time { font-size: 6.5px; margin-top: 1px; }
       .calendar-switch {
         position: fixed;
         left: 50%;
@@ -1139,8 +1154,8 @@
         .time-label { width: 50px; padding-right: 8px; font-size: 11px; }
         .time-plot { left: 54px; }
         .week-day-heads { margin-left: 54px; }
-        .week-time-grid .calendar-event { font-size: 0; }
-        .week-time-grid .calendar-event::first-letter { font-size: 9px; }
+        .week-time-grid .calendar-event .event-label { font-size: 7px; }
+        .week-time-grid .calendar-event .event-time { font-size: 6px; }
       }
       @media (prefers-reduced-motion: reduce) {
         .sheet, .toast, .entry { transition: none; }
@@ -1427,8 +1442,12 @@
         </div>
         <div class="field-label">Note (optional)</div>
         <textarea id="editNote" placeholder="e.g. morning pee" maxlength="140"></textarea>
-        <div class="field-label">Date &amp; time</div>
+        <div class="field-label" id="editWhenLabel">Date &amp; time</div>
         <input type="datetime-local" id="editWhen" aria-label="Entry date and time" />
+        <div id="editEndWrap" hidden>
+          <div class="field-label">End time</div>
+          <input type="datetime-local" id="editEnd" aria-label="Walk end time" />
+        </div>
         <button class="save-btn" id="editSave" type="button">Save</button>
         <button class="delete-btn" id="editDelete" type="button">Delete entry</button>
       </div>
@@ -1483,7 +1502,7 @@
       var state = {
         dog: "jojo",
         tab: "activities",
-        entries: [], // {id, dog, type, ts, note, pending, failed, unconfirmed}
+        entries: [], // {id, dog, type, ts, endTs, note, pending, failed, unconfirmed}
         seq: 0,
         weekOffset: 0,
         selectedDay: startOfDay(Date.now()),
@@ -1578,6 +1597,9 @@
       var opQueue = [];
       var flushing = false;
       var cancelledTemps = {};
+      // null until the first successful read/write proves whether the optional
+      // ends_at column has been added to the shared table.
+      var endsAtSupported = null;
 
       /* Plain-fetch PostgREST access. Reads and writes go through fetch()
          directly, so the shared log loads and saves even when the supabase-js
@@ -1616,7 +1638,12 @@
 
       // Normalizes an HTTP failure into a small throwable.
       function httpError(status, body) {
-        return { name: "HTTP " + status, status: status, body: String(body || "").slice(0, 120) };
+        return { name: "HTTP " + status, status: status, body: String(body || "").slice(0, 500) };
+      }
+
+      function isEndsAtColumnError(err) {
+        return !!(err && (err.status === 400 || err.status === 404) &&
+          String(err.body || "").toLowerCase().indexOf("ends_at") >= 0);
       }
 
       // Short, human-readable description of a fetch failure for the banner.
@@ -1643,11 +1670,13 @@
       function isTempId(id) { return typeof id === "string" && id.indexOf("tmp-") === 0; }
 
       function rowToEntry(row) {
+        var endTs = row.ends_at ? new Date(row.ends_at).getTime() : null;
         return {
           id: row.id,
           dog: row.dog,
           type: row.activity,
           ts: new Date(row.occurred_at).getTime(),
+          endTs: endTs && !isNaN(endTs) ? endTs : null,
           note: row.note || ""
         };
       }
@@ -1696,20 +1725,32 @@
       // One plain-fetch read of the shared log. Throws a small {name,status}
       // error on any failure so the banner can say what went wrong.
       function fetchEntriesOnce() {
-        var url = SB_REST +
-          "?select=id,household,dog,activity,occurred_at,note" +
-          "&household=eq." + encodeURIComponent(HOUSEHOLD) +
-          "&order=occurred_at.desc&limit=1000";
-        return fetchWithTimeout(url, { headers: sbHeaders() }, 12000)
-          .then(function (resp) {
-            return resp.text().then(function (body) {
-              if (!resp.ok) throw httpError(resp.status, body);
-              var rows;
-              try { rows = JSON.parse(body); }
-              catch (err) { throw { name: "BadResponse", status: resp.status }; }
-              return rows || [];
+        function read(includeEnd) {
+          var select = "id,household,dog,activity,occurred_at,note" + (includeEnd ? ",ends_at" : "");
+          var url = SB_REST +
+            "?select=" + select +
+            "&household=eq." + encodeURIComponent(HOUSEHOLD) +
+            "&order=occurred_at.desc&limit=1000";
+          return fetchWithTimeout(url, { headers: sbHeaders() }, 12000)
+            .then(function (resp) {
+              return resp.text().then(function (body) {
+                if (!resp.ok) throw httpError(resp.status, body);
+                var rows;
+                try { rows = JSON.parse(body); }
+                catch (err) { throw { name: "BadResponse", status: resp.status }; }
+                if (includeEnd) endsAtSupported = true;
+                return rows || [];
+              });
             });
-          });
+        }
+        var includeEnd = endsAtSupported !== false;
+        return read(includeEnd).catch(function (err) {
+          if (includeEnd && isEndsAtColumnError(err)) {
+            endsAtSupported = false;
+            return read(false);
+          }
+          throw err;
+        });
       }
 
       function calendarRange() {
@@ -1729,23 +1770,35 @@
       }
 
       function fetchCalendarOnce(rangeStart, rangeEnd, dogId) {
-        var url = SB_REST +
-          "?select=id,household,dog,activity,occurred_at,note" +
-          "&household=eq." + encodeURIComponent(HOUSEHOLD) +
-          "&dog=eq." + encodeURIComponent(dogId) +
-          "&occurred_at=gte." + encodeURIComponent(new Date(rangeStart).toISOString()) +
-          "&occurred_at=lt." + encodeURIComponent(new Date(rangeEnd).toISOString()) +
-          "&order=occurred_at.asc&limit=1000";
-        return fetchWithTimeout(url, { headers: sbHeaders() }, 12000)
-          .then(function (resp) {
-            return resp.text().then(function (body) {
-              if (!resp.ok) throw httpError(resp.status, body);
-              var rows;
-              try { rows = JSON.parse(body); }
-              catch (err) { throw { name: "BadResponse", status: resp.status }; }
-              return rows || [];
+        function read(includeEnd) {
+          var select = "id,household,dog,activity,occurred_at,note" + (includeEnd ? ",ends_at" : "");
+          var url = SB_REST +
+            "?select=" + select +
+            "&household=eq." + encodeURIComponent(HOUSEHOLD) +
+            "&dog=eq." + encodeURIComponent(dogId) +
+            "&occurred_at=gte." + encodeURIComponent(new Date(rangeStart).toISOString()) +
+            "&occurred_at=lt." + encodeURIComponent(new Date(rangeEnd).toISOString()) +
+            "&order=occurred_at.asc&limit=1000";
+          return fetchWithTimeout(url, { headers: sbHeaders() }, 12000)
+            .then(function (resp) {
+              return resp.text().then(function (body) {
+                if (!resp.ok) throw httpError(resp.status, body);
+                var rows;
+                try { rows = JSON.parse(body); }
+                catch (err) { throw { name: "BadResponse", status: resp.status }; }
+                if (includeEnd) endsAtSupported = true;
+                return rows || [];
+              });
             });
-          });
+        }
+        var includeEnd = endsAtSupported !== false;
+        return read(includeEnd).catch(function (err) {
+          if (includeEnd && isEndsAtColumnError(err)) {
+            endsAtSupported = false;
+            return read(false);
+          }
+          throw err;
+        });
       }
 
       function loadCalendarRange(withRetry) {
@@ -1836,7 +1889,7 @@
           var e = rowToEntry(payload.new);
           var existing = findEntry(e.id);
           if (existing) {
-            existing.dog = e.dog; existing.type = e.type; existing.ts = e.ts; existing.note = e.note;
+            existing.dog = e.dog; existing.type = e.type; existing.ts = e.ts; existing.endTs = e.endTs; existing.note = e.note;
             existing.pending = false; existing.failed = false; existing.unconfirmed = false;
           } else {
             state.entries.push(e);
@@ -1845,7 +1898,7 @@
           var u = findEntry(payload.new.id);
           if (u) {
             var ue = rowToEntry(payload.new);
-            u.dog = ue.dog; u.type = ue.type; u.ts = ue.ts; u.note = ue.note;
+            u.dog = ue.dog; u.type = ue.type; u.ts = ue.ts; u.endTs = ue.endTs; u.note = ue.note;
           }
         } else if (payload.eventType === "DELETE" && payload.old && payload.old.id) {
           var oldId = payload.old.id;
@@ -1858,52 +1911,84 @@
       /* ----- write queue: inserts/updates/deletes flush in order ----- */
       function runOp(op) {
         if (op.kind === "insert") {
-          return fetchWithTimeout(SB_REST, {
-            method: "POST",
-            headers: sbHeaders({ "Prefer": "return=representation" }),
-            body: JSON.stringify(op.payload)
-          }, 12000).then(function (resp) {
-            return resp.text().then(function (body) {
-              if (!resp.ok) throw httpError(resp.status, body);
-              var rows = [];
-              try { rows = JSON.parse(body) || []; } catch (err) { /* id unknown */ }
-              var newId = rows[0] && rows[0].id;
-              var e = findEntry(op.tempId);
-              if (!newId) {
-                // Saved, but the server id didn't come back; refresh from the
-                // server so the temp id can be reconciled.
-                loadEntries();
-                return;
-              }
-              if (e) {
-                e.id = newId;
-                e.pending = false;
-                e.failed = false;
-                if (state.lastCreatedId === op.tempId) state.lastCreatedId = newId;
-                if (state.editingId === op.tempId) state.editingId = newId;
-                // Edited while the insert was in flight? Send the newer values.
-                if (e.ts !== new Date(op.payload.occurred_at).getTime() || (e.note || null) !== op.payload.note) {
-                  opQueue.push({ kind: "update", id: newId, fields: { occurred_at: new Date(e.ts).toISOString(), note: e.note || null } });
-                }
-              } else if (cancelledTemps[op.tempId]) {
-                // Deleted before the insert landed — remove the row again.
-                delete cancelledTemps[op.tempId];
-                restDelete(newId).then(function () {}, function () {});
-              }
-              renderAll();
+          function sendInsert(payload) {
+            return fetchWithTimeout(SB_REST, {
+              method: "POST",
+              headers: sbHeaders({ "Prefer": "return=representation" }),
+              body: JSON.stringify(payload)
+            }, 12000).then(function (resp) {
+              return resp.text().then(function (body) {
+                if (!resp.ok) throw httpError(resp.status, body);
+                if (Object.prototype.hasOwnProperty.call(payload, "ends_at")) endsAtSupported = true;
+                var rows = [];
+                try { rows = JSON.parse(body) || []; } catch (err) { /* id unknown */ }
+                return rows;
+              });
             });
+          }
+          var sentPayload = {};
+          for (var sentKey in op.payload) sentPayload[sentKey] = op.payload[sentKey];
+          return sendInsert(sentPayload).catch(function (err) {
+            if (!isEndsAtColumnError(err)) throw err;
+            endsAtSupported = false;
+            var fallback = {};
+            for (var key in sentPayload) if (key !== "ends_at") fallback[key] = sentPayload[key];
+            sentPayload = fallback;
+            delete op.payload.ends_at;
+            return sendInsert(fallback);
+          }).then(function (rows) {
+            var newId = rows[0] && rows[0].id;
+            var e = findEntry(op.tempId);
+            if (!newId) {
+              // Saved, but the server id didn't come back; refresh from the
+              // server so the temp id can be reconciled.
+              loadEntries();
+              return;
+            }
+            if (e) {
+              e.id = newId;
+              e.pending = false;
+              e.failed = false;
+              if (state.lastCreatedId === op.tempId) state.lastCreatedId = newId;
+              if (state.editingId === op.tempId) state.editingId = newId;
+              var savedEnd = sentPayload.ends_at ? new Date(sentPayload.ends_at).getTime() : null;
+              // Edited while the insert was in flight? Send the newer values.
+              if (e.ts !== new Date(sentPayload.occurred_at).getTime() ||
+                  (e.note || null) !== sentPayload.note ||
+                  (endsAtSupported !== false && (e.endTs || null) !== savedEnd)) {
+                var newer = { occurred_at: new Date(e.ts).toISOString(), note: e.note || null };
+                if (endsAtSupported !== false) newer.ends_at = e.type === "walk" && e.endTs ? new Date(e.endTs).toISOString() : null;
+                opQueue.push({ kind: "update", id: newId, fields: newer });
+              }
+            } else if (cancelledTemps[op.tempId]) {
+              // Deleted before the insert landed — remove the row again.
+              delete cancelledTemps[op.tempId];
+              restDelete(newId).then(function () {}, function () {});
+            }
+            renderAll();
           });
         }
         if (op.kind === "update") {
-          return fetchWithTimeout(SB_REST + "?id=eq." + encodeURIComponent(op.id), {
-            method: "PATCH",
-            headers: sbHeaders(),
-            body: JSON.stringify(op.fields)
-          }, 12000).then(function (resp) {
-            return resp.text().then(function (body) {
-              if (!resp.ok) throw httpError(resp.status, body);
-              return null;
+          function sendUpdate(fields) {
+            return fetchWithTimeout(SB_REST + "?id=eq." + encodeURIComponent(op.id), {
+              method: "PATCH",
+              headers: sbHeaders(),
+              body: JSON.stringify(fields)
+            }, 12000).then(function (resp) {
+              return resp.text().then(function (body) {
+                if (!resp.ok) throw httpError(resp.status, body);
+                if (Object.prototype.hasOwnProperty.call(fields, "ends_at")) endsAtSupported = true;
+                return null;
+              });
             });
+          }
+          return sendUpdate(op.fields).catch(function (err) {
+            if (!isEndsAtColumnError(err)) throw err;
+            endsAtSupported = false;
+            var fallback = {};
+            for (var key in op.fields) if (key !== "ends_at") fallback[key] = op.fields[key];
+            op.fields = fallback;
+            return sendUpdate(fallback);
           });
         }
         return restDelete(op.id);
@@ -1935,29 +2020,33 @@
         });
       }
 
+      function entryWriteFields(e) {
+        var fields = { occurred_at: new Date(e.ts).toISOString(), note: e.note || null };
+        if (endsAtSupported !== false) {
+          fields.ends_at = e.type === "walk" && e.endTs ? new Date(e.endTs).toISOString() : null;
+        }
+        return fields;
+      }
+
       function queueInsert(e) {
-        opQueue.push({
-          kind: "insert",
-          tempId: e.id,
-          payload: {
-            household: HOUSEHOLD,
-            dog: e.dog,
-            activity: e.type,
-            occurred_at: new Date(e.ts).toISOString(),
-            note: e.note || null
-          }
-        });
+        var payload = entryWriteFields(e);
+        payload.household = HOUSEHOLD;
+        payload.dog = e.dog;
+        payload.activity = e.type;
+        opQueue.push({ kind: "insert", tempId: e.id, payload: payload });
         flushQueue();
       }
 
       // Save edits: a not-yet-inserted entry just updates its queued payload.
       function persistSave(e) {
-        var fields = { occurred_at: new Date(e.ts).toISOString(), note: e.note || null };
+        var fields = entryWriteFields(e);
         if (isTempId(e.id)) {
           for (var i = 0; i < opQueue.length; i++) {
             if (opQueue[i].kind === "insert" && opQueue[i].tempId === e.id) {
               opQueue[i].payload.occurred_at = fields.occurred_at;
               opQueue[i].payload.note = fields.note;
+              if (Object.prototype.hasOwnProperty.call(fields, "ends_at")) opQueue[i].payload.ends_at = fields.ends_at;
+              else delete opQueue[i].payload.ends_at;
               flushQueue();
               return;
             }
@@ -2288,13 +2377,21 @@
         }).length;
       }
 
-      function calendarEventButton(e, className) {
+      function compactClock(ts) {
+        return fmtClock(ts).replace(":00", "").replace(" ", "").toLowerCase();
+      }
+
+      function calendarEventButton(item, className) {
+        var e = item.entry;
         var b = document.createElement("button");
         b.type = "button";
         b.className = "calendar-event " + e.type + (className ? " " + className : "");
-        b.textContent = TYPES[e.type].label;
-        b.setAttribute("aria-label", "Edit " + TYPES[e.type].label + " at " + fmtClock(e.ts));
-        b.title = TYPES[e.type].label + " · " + fmtClock(e.ts);
+        var rangeText = compactClock(item.start) + "–" + compactClock(item.end);
+        b.innerHTML = '<span class="event-label"></span><span class="event-time"></span>';
+        b.querySelector(".event-label").textContent = TYPES[e.type].label;
+        b.querySelector(".event-time").textContent = rangeText;
+        b.setAttribute("aria-label", "Edit " + TYPES[e.type].label + " from " + fmtClock(item.start) + " to " + fmtClock(item.end));
+        b.title = TYPES[e.type].label + " · " + rangeText;
         b.addEventListener("click", function () {
           if (!findEntry(e.id)) state.entries.push(e);
           openEdit(e.id, false);
@@ -2339,6 +2436,76 @@
         return mins >= 360 && mins < 1260;
       }
 
+      // Build visual ranges. Point activities occupy 25 minutes. A walk uses
+      // its saved end; legacy walks without one grow to include activities
+      // logged in the following hour, while remaining at least 30 minutes tall.
+      function calendarRanges(dayList) {
+        return dayList.map(function (e) {
+          var end = e.ts + 25 * 60000;
+          if (e.type === "walk") {
+            if (e.endTs && e.endTs > e.ts) {
+              end = e.endTs;
+            } else {
+              end = e.ts + 30 * 60000;
+              dayList.forEach(function (other) {
+                if (other.id !== e.id && other.ts >= e.ts && other.ts <= e.ts + 60 * 60000) {
+                  end = Math.max(end, other.ts + 25 * 60000);
+                }
+              });
+            }
+          }
+          var layoutEnd = e.type === "walk" ? Math.max(end, e.ts + 30 * 60000) : end;
+          return { entry: e, start: e.ts, end: end, layoutEnd: layoutEnd, col: 0, cols: 1 };
+        }).sort(function (a, b) {
+          return a.start - b.start || b.end - a.end;
+        });
+      }
+
+      // Split connected overlap clusters and assign the first free column.
+      // Every event in a cluster gets the same column width, so no blocks cover
+      // each other even when a long walk contains several point activities.
+      function layoutOverlapColumns(items) {
+        var clusters = [];
+        var cluster = [];
+        var clusterEnd = -Infinity;
+        items.forEach(function (item) {
+          if (cluster.length && item.start >= clusterEnd) {
+            clusters.push(cluster);
+            cluster = [];
+            clusterEnd = -Infinity;
+          }
+          cluster.push(item);
+          clusterEnd = Math.max(clusterEnd, item.layoutEnd);
+        });
+        if (cluster.length) clusters.push(cluster);
+
+        clusters.forEach(function (group) {
+          var columnEnds = [];
+          group.forEach(function (item) {
+            var col = 0;
+            while (col < columnEnds.length && columnEnds[col] > item.start) col++;
+            item.col = col;
+            columnEnds[col] = item.layoutEnd;
+          });
+          var count = Math.max(1, columnEnds.length);
+          group.forEach(function (item) { item.cols = count; });
+        });
+        return items;
+      }
+
+      function placeCalendarEvent(plot, item, leftPct, widthPct, className) {
+        var b = calendarEventButton(item, className);
+        var top = Math.max(0, Math.min(959, eventTop(item.start)));
+        var naturalHeight = ((item.layoutEnd - item.start) / 60000 / 60) * 64;
+        var height = Math.max(item.entry.type === "walk" ? 32 : 30, naturalHeight);
+        height = Math.min(height, 960 - top);
+        b.style.top = top + "px";
+        b.style.height = height + "px";
+        b.style.left = "calc(" + leftPct + "% + 2px)";
+        b.style.width = "calc(" + widthPct + "% - 4px)";
+        plot.appendChild(b);
+      }
+
       function renderDayCalendar(now, list) {
         var selected = state.calendarSelectedDay;
         $("dayLabel").textContent = new Date(selected).toLocaleDateString(undefined, {
@@ -2348,26 +2515,9 @@
         var grid = $("dayTimeGrid");
         var plot = buildTimeGrid(grid);
         var dayList = list.filter(function (e) { return sameDay(e.ts, selected) && inTimeGrid(e); });
-
-        var clusters = [];
-        dayList.forEach(function (e) {
-          var last = clusters.length ? clusters[clusters.length - 1] : null;
-          if (!last || e.ts - last[last.length - 1].ts >= 45 * 60000) clusters.push([e]);
-          else last.push(e);
-        });
-        clusters.forEach(function (cluster) {
-          cluster.forEach(function (e, index) {
-            var b = calendarEventButton(e, "day-event");
-            b.style.top = Math.max(0, Math.min(926, eventTop(e.ts))) + "px";
-            if (cluster.length > 1) {
-              b.style.left = "calc(" + ((index % 2) * 50) + "% + 1px)";
-              b.style.width = "calc(50% - 2px)";
-            } else {
-              b.style.left = "1px";
-              b.style.width = "calc(100% - 3px)";
-            }
-            plot.appendChild(b);
-          });
+        var items = layoutOverlapColumns(calendarRanges(dayList));
+        items.forEach(function (item) {
+          placeCalendarEvent(plot, item, item.col * 100 / item.cols, 100 / item.cols, "day-event");
         });
 
         if (sameDay(selected, now)) {
@@ -2402,15 +2552,16 @@
         }
         var grid = $("weekTimeGrid");
         var plot = buildTimeGrid(grid);
-        list.filter(inTimeGrid).forEach(function (e) {
-          var dayIndex = Math.round((startOfDay(e.ts) - weekStart) / 86400000);
-          if (dayIndex < 0 || dayIndex > 6) return;
-          var b = calendarEventButton(e, "week-event");
-          b.style.top = Math.max(0, Math.min(932, eventTop(e.ts))) + "px";
-          b.style.left = "calc(" + (dayIndex * 100 / 7) + "% + 2px)";
-          b.style.width = "calc(" + (100 / 7) + "% - 4px)";
-          plot.appendChild(b);
-        });
+        for (var dayIndex = 0; dayIndex < 7; dayIndex++) {
+          var dayTs = addDays(weekStart, dayIndex);
+          var dayList = list.filter(function (e) { return sameDay(e.ts, dayTs) && inTimeGrid(e); });
+          var items = layoutOverlapColumns(calendarRanges(dayList));
+          items.forEach(function (item) {
+            var left = (dayIndex + item.col / item.cols) * 100 / 7;
+            var width = (1 / item.cols) * 100 / 7;
+            placeCalendarEvent(plot, item, left, width, "week-event");
+          });
+        }
       }
 
       function renderMonthCalendar(now, list) {
@@ -2846,10 +2997,12 @@
 
       /* ---------- logging + edit page ---------- */
       function quickLog(type) {
+        var now = Date.now();
         var e = {
-          id: "tmp-" + (++state.seq) + "-" + Date.now(),
-          dog: state.dog, type: type, ts: Date.now(), note: "",
-          pending: true, unconfirmed: true
+          id: "tmp-" + (++state.seq) + "-" + now,
+          dog: state.dog, type: type, ts: now,
+          endTs: type === "walk" ? now + 30 * 60000 : null,
+          note: "", pending: true, unconfirmed: true
         };
         state.entries.push(e);
         state.lastCreatedId = e.id;
@@ -2878,7 +3031,15 @@
         $("editTitle").textContent = TYPES[e.type].label;
         $("editSub").textContent = "Logged for " + (dog ? dog.name : "") + " · " + fmtClock(e.ts);
         $("editNote").value = e.note || "";
+        $("editWhenLabel").textContent = e.type === "walk" ? "Start time" : "Date & time";
+        $("editWhen").setAttribute("aria-label", e.type === "walk" ? "Walk start time" : "Entry date and time");
         $("editWhen").value = toLocalInput(e.ts);
+        $("editEndWrap").hidden = e.type !== "walk";
+        if (e.type === "walk") {
+          $("editEnd").value = toLocalInput(e.endTs && e.endTs > e.ts ? e.endTs : e.ts + 30 * 60000);
+        } else {
+          $("editEnd").value = "";
+        }
         $("editPage").classList.add("show");
       }
 
@@ -2909,9 +3070,16 @@
           var t = new Date(v).getTime();
           if (!isNaN(t)) e.ts = Math.min(t, Date.now());
         }
+        if (e.type === "walk") {
+          var endValue = $("editEnd").value;
+          var parsedEnd = endValue ? new Date(endValue).getTime() : NaN;
+          e.endTs = !isNaN(parsedEnd) && parsedEnd > e.ts ? parsedEnd : e.ts + 30 * 60000;
+        } else {
+          e.endTs = null;
+        }
         e.note = $("editNote").value.trim();
         state.calendarEntries.forEach(function (ce) {
-          if (ce.id === e.id) { ce.ts = e.ts; ce.note = e.note; }
+          if (ce.id === e.id) { ce.ts = e.ts; ce.endTs = e.endTs; ce.note = e.note; }
         });
         persistSave(e);
         var wasNew = state.editingIsNew;
