@@ -43,6 +43,8 @@
         --play-bg: #fbeedf;
         --walk: #4a7a1d;
         --walk-bg: #e9f3dc;
+        --sleep: #4a549e;
+        --sleep-bg: #e7e9f6;
         --danger: #c0392b;
         --danger-bg: #fbe7e3;
         --calendar-accent: #49368f;
@@ -77,6 +79,8 @@
           --play-bg: #3f2c17;
           --walk: #a3cf7a;
           --walk-bg: #2c3a1e;
+          --sleep: #a3aee8;
+          --sleep-bg: #272c4a;
           --danger: #ef8a7d;
           --danger-bg: #422320;
           --calendar-accent: #a99af0;
@@ -338,6 +342,29 @@
       .due.overdue { background: var(--danger-bg); color: var(--danger); }
       .gap-caption { margin: 10px 0 0; font-size: 12px; font-weight: 600; color: var(--ink-soft); line-height: 1.4; }
 
+      /* ---------- Sleep status banner ---------- */
+      .sleep-banner {
+        margin-top: 14px;
+        width: 100%;
+        border: 0;
+        background: var(--sleep-bg);
+        color: var(--sleep);
+        border-radius: 16px;
+        padding: 13px 16px;
+        font: inherit;
+        font-weight: 800;
+        font-size: 15px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        cursor: pointer;
+        text-align: left;
+        box-shadow: var(--shadow);
+        -webkit-tap-highlight-color: transparent;
+      }
+      .sleep-banner svg { width: 22px; height: 22px; flex: none; }
+      .sleep-banner .dur { margin-left: auto; font-weight: 900; flex: none; }
+
       /* ---------- Feed ---------- */
       section { margin-top: 26px; }
       section h3 {
@@ -386,6 +413,7 @@
       .dot.drink { background: var(--drink-bg); color: var(--drink); }
       .dot.play { background: var(--play-bg); color: var(--play); }
       .dot.walk { background: var(--walk-bg); color: var(--walk); }
+      .dot.sleep { background: var(--sleep-bg); color: var(--sleep); }
       .entry .mid { flex: 1; min-width: 0; }
       .entry .what { font-weight: 900; font-size: 16.5px; display: block; }
       .entry .note {
@@ -673,6 +701,9 @@
       .calendar-event.drink { background: var(--drink); }
       .calendar-event.play { background: var(--play); }
       .calendar-event.walk { background: var(--walk); }
+      .calendar-event.sleep { background: var(--sleep); }
+      .calendar-event.cont-up { border-top: 3px dashed rgba(255, 255, 255, 0.85); }
+      .calendar-event.cont-down { border-bottom: 3px dashed rgba(255, 255, 255, 0.85); }
       .calendar-event:active { filter: brightness(.88); }
       .now-line {
         position: absolute;
@@ -854,7 +885,7 @@
         border-top: 1px solid var(--line);
         padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
         display: grid;
-        grid-template-columns: repeat(5, 1fr);
+        grid-template-columns: repeat(6, 1fr);
         z-index: 15;
         box-shadow: 0 -4px 18px rgba(43, 33, 24, 0.06);
       }
@@ -880,6 +911,8 @@
       .quickbar .q-eat { color: var(--eat); }
       .quickbar .q-drink { color: var(--drink); }
       .quickbar .q-more { color: var(--ink-soft); }
+      .quickbar .q-sleep { color: var(--sleep); }
+      .quickbar button.sleeping { background: var(--sleep-bg); }
       .quickbar .lbl { color: var(--ink); }
 
       /* ---------- Sheets & edit page ---------- */
@@ -1269,6 +1302,13 @@
           <div class="due" id="dueBanner"></div>
         </div>
 
+        <!-- Sleep status (visible only while a sleep is open for this profile) -->
+        <button class="sleep-banner" id="sleepBanner" type="button" hidden>
+          <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          <span id="sleepBannerText">Sleeping</span>
+          <span class="dur" id="sleepBannerDur"></span>
+        </button>
+
         <!-- Feed -->
         <section>
           <h3 id="feedTitle">Activities</h3>
@@ -1393,6 +1433,44 @@
         </section>
 
         <section>
+          <h3>Sleep</h3>
+          <div class="status" style="margin-top:0">
+            <div class="timers" style="margin-top:0">
+              <div class="timer">
+                <div class="k">Sleep today</div>
+                <div class="v" id="insSleepToday">—</div>
+                <div class="s">so far today</div>
+              </div>
+              <div class="timer">
+                <div class="k">Last 24 hours</div>
+                <div class="v" id="insSleep24">—</div>
+                <div class="s">total sleep</div>
+              </div>
+              <div class="timer">
+                <div class="k">Sleeps · 7 days</div>
+                <div class="v" id="insSleepCount">—</div>
+                <div class="s">naps + nights</div>
+              </div>
+              <div class="timer">
+                <div class="k">Avg sleep · 7 days</div>
+                <div class="v" id="insSleepAvg">—</div>
+                <div class="s">per finished sleep</div>
+              </div>
+              <div class="timer">
+                <div class="k">Longest · 7 days</div>
+                <div class="v" id="insSleepLongest">—</div>
+                <div class="s">single stretch</div>
+              </div>
+              <div class="timer">
+                <div class="k">Last sleep</div>
+                <div class="v" id="insSleepLast">—</div>
+                <div class="s" id="insSleepLastNote">&nbsp;</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section>
           <h3>When potty usually happens</h3>
           <div class="card">
             <div class="chart-scroll" id="chartBox"></div>
@@ -1428,6 +1506,10 @@
       <button type="button" data-quick="poop">
         <svg class="q-poop" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.6 3.1c.4 1.1-.2 2-1.1 2.7 2.6.3 4.6 1.8 4.6 3.7 0 .4-.1.8-.3 1.1 1.9.6 3.2 2 3.2 3.7 0 2.6-3.1 4.7-7 4.7s-7-2.1-7-4.7c0-1.7 1.3-3.1 3.2-3.7-.2-.3-.3-.7-.3-1.1 0-2.1 2.3-3.6 5.1-3.8-.5-.8-.6-1.8.1-2.6.2-.3.5-.2.5 0z"/></svg>
         <span class="lbl">Poop</span>
+      </button>
+      <button type="button" id="sleepBtn">
+        <svg class="q-sleep" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <span class="lbl" id="sleepBtnLabel">Sleep</span>
       </button>
       <button type="button" id="moreBtn">
         <svg class="q-more" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg>
@@ -1467,8 +1549,8 @@
         <div class="field-label" id="editWhenLabel">Date &amp; time</div>
         <input type="datetime-local" id="editWhen" aria-label="Entry date and time" />
         <div id="editEndWrap" hidden>
-          <div class="field-label">End time</div>
-          <input type="datetime-local" id="editEnd" aria-label="Walk end time" />
+          <div class="field-label" id="editEndLabel">End time</div>
+          <input type="datetime-local" id="editEnd" aria-label="Entry end time" />
         </div>
         <button class="save-btn" id="editSave" type="button">Save</button>
         <button class="delete-btn" id="editDelete" type="button">Delete entry</button>
@@ -1494,14 +1576,21 @@
         check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8.5 12.5 2.5 2.5 4.5-5.5"/></svg>'
       };
 
+      ICONS.moon = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+
       var TYPES = {
         pee:   { label: "Pee",   icon: ICONS.drop },
         poop:  { label: "Poop",  icon: ICONS.poop },
         eat:   { label: "Eat",   icon: ICONS.bowl },
         drink: { label: "Drink", icon: ICONS.cup },
         play:  { label: "Play",  icon: ICONS.ball },
-        walk:  { label: "Walk",  icon: ICONS.paw }
+        walk:  { label: "Walk",  icon: ICONS.paw },
+        sleep: { label: "Sleep", icon: ICONS.moon }
       };
+      // Duration activities carry a real end time (ends_at); the rest are
+      // single moments. Sleep stays out of TYPE_ORDER on purpose: it has its
+      // own Insights section and never joins the six-activity counts.
+      function isDurationType(t) { return t === "walk" || t === "sleep"; }
       var TYPE_ORDER = ["pee", "poop", "eat", "drink", "play", "walk"];
 
       var DOGS = [
@@ -1788,14 +1877,17 @@
       }
 
       function calendarRange() {
+        // The fetch window starts a day early so a sleep that began the
+        // evening before (occurred_at = its start) still loads on the day
+        // it ends. Renderers filter per day, so the extra rows are inert.
         if (state.calendarMode === "month") {
-          return { start: state.calendarMonth, end: addMonths(state.calendarMonth, 1) };
+          return { start: state.calendarMonth - 86400000, end: addMonths(state.calendarMonth, 1) };
         }
         if (state.calendarMode === "week") {
           var weekStart = startOfWeek(state.calendarSelectedDay);
-          return { start: weekStart, end: addDays(weekStart, 7) };
+          return { start: weekStart - 86400000, end: addDays(weekStart, 7) };
         }
-        return { start: state.calendarSelectedDay, end: addDays(state.calendarSelectedDay, 1) };
+        return { start: state.calendarSelectedDay - 86400000, end: addDays(state.calendarSelectedDay, 1) };
       }
 
       function calendarKey() {
@@ -1991,7 +2083,7 @@
                   (e.note || null) !== sentPayload.note ||
                   (endsAtSupported !== false && (e.endTs || null) !== savedEnd)) {
                 var newer = { occurred_at: new Date(e.ts).toISOString(), note: e.note || null };
-                if (endsAtSupported !== false) newer.ends_at = e.type === "walk" && e.endTs ? new Date(e.endTs).toISOString() : null;
+                if (endsAtSupported !== false) newer.ends_at = isDurationType(e.type) && e.endTs ? new Date(e.endTs).toISOString() : null;
                 opQueue.push({ kind: "update", id: newId, fields: newer });
               }
             } else if (cancelledTemps[op.tempId]) {
@@ -2057,7 +2149,7 @@
       function entryWriteFields(e) {
         var fields = { occurred_at: new Date(e.ts).toISOString(), note: e.note || null };
         if (endsAtSupported !== false) {
-          fields.ends_at = e.type === "walk" && e.endTs ? new Date(e.endTs).toISOString() : null;
+          fields.ends_at = isDurationType(e.type) && e.endTs ? new Date(e.endTs).toISOString() : null;
         }
         return fields;
       }
@@ -2352,7 +2444,14 @@
           mid.className = "mid";
           var what = document.createElement("span");
           what.className = "what";
-          what.textContent = TYPES[e.type].label;
+          if (e.type === "sleep" && e.endTs && e.endTs > e.ts) {
+            what.textContent = "Sleep · " + fmtClock(e.ts) + " – " + fmtClock(e.endTs) +
+              " (" + fmtDur((e.endTs - e.ts) / 60000) + ")";
+          } else if (e.type === "sleep") {
+            what.textContent = "Sleeping since " + fmtClock(e.ts);
+          } else {
+            what.textContent = TYPES[e.type].label;
+          }
           mid.appendChild(what);
           if (e.note) {
             var note = document.createElement("span");
@@ -2433,10 +2532,12 @@
 
       function calendarEventButton(item, className) {
         var e = item.entry;
-        var isPoint = e.type !== "walk";
+        var isPoint = !isDurationType(e.type);
         var b = document.createElement("button");
         b.type = "button";
-        b.className = "calendar-event " + e.type + (isPoint ? " point-event" : " duration-event") + (className ? " " + className : "");
+        b.className = "calendar-event " + e.type + (isPoint ? " point-event" : " duration-event") +
+          (item.contUp ? " cont-up" : "") + (item.contDown ? " cont-down" : "") +
+          (className ? " " + className : "");
         if (isPoint) {
           var pointTime = fmtClock(item.start).toLowerCase();
           b.innerHTML = '<span class="event-label"></span>';
@@ -2444,10 +2545,13 @@
           b.setAttribute("aria-label", "Edit " + TYPES[e.type].label + " at " + fmtClock(item.start));
           b.title = TYPES[e.type].label + " · " + pointTime;
         } else {
-          var rangeText = compactClock(item.start) + "–" + compactClock(item.end);
+          var rangeText = item.open
+            ? compactClock(item.start) + "–now"
+            : compactClock(item.start) + "–" + compactClock(item.end);
           b.innerHTML = '<span class="event-label"></span>';
           b.querySelector(".event-label").textContent = TYPES[e.type].label + " · " + rangeText;
-          b.setAttribute("aria-label", "Edit " + TYPES[e.type].label + " from " + fmtClock(item.start) + " to " + fmtClock(item.end));
+          b.setAttribute("aria-label", "Edit " + TYPES[e.type].label + " from " + fmtClock(item.start) +
+            (item.open ? ", still going" : " to " + fmtClock(item.end)));
           b.title = TYPES[e.type].label + " · " + rangeText;
         }
         b.addEventListener("click", function () {
@@ -2494,14 +2598,37 @@
         return mins >= 360 && mins < 1260;
       }
 
+      // A sleep belongs to every day its span touches (a night sleep shows
+      // on both the evening it starts and the morning it ends); every other
+      // activity belongs to the day it was logged.
+      function overlapsDay(e, dayTs) {
+        if (e.type !== "sleep") return sameDay(e.ts, dayTs);
+        var end = e.endTs && e.endTs > e.ts ? e.endTs : Date.now();
+        return e.ts < dayTs + 86400000 && end > dayTs;
+      }
+
+      // Whether any part of the entry falls inside the day's 6am–9pm grid.
+      function inGridWindow(e, dayTs) {
+        if (e.type !== "sleep") return inTimeGrid(e);
+        var end = e.endTs && e.endTs > e.ts ? e.endTs : Date.now();
+        return e.ts < dayTs + 1260 * 60000 && end > dayTs + 360 * 60000;
+      }
+
       // Point activities have one exact timestamp and no duration. Walks use
       // their saved end; legacy walks without one keep the 30-minute default
       // and grow only far enough to include Pee/Poop logged in the next hour.
-      function calendarRanges(dayList) {
+      // Sleeps span start→end (an open sleep runs to now) and are clipped to
+      // the day's 6am–9pm grid window for display: dispStart/dispEnd are the
+      // on-grid portion, contUp/contDown flag the parts that continue past
+      // an edge, while start/end keep the real times for the label.
+      function calendarRanges(dayList, dayTs) {
+        var gridStart = dayTs + 360 * 60000;
+        var gridEnd = dayTs + 1260 * 60000;
         return dayList.map(function (e) {
-          var isPoint = e.type !== "walk";
+          var isPoint = !isDurationType(e.type);
           var end = e.ts;
-          if (!isPoint) {
+          var open = false;
+          if (e.type === "walk") {
             if (e.endTs && e.endTs > e.ts) {
               end = e.endTs;
             } else {
@@ -2512,11 +2639,30 @@
                 }
               });
             }
+          } else if (e.type === "sleep") {
+            open = !(e.endTs && e.endTs > e.ts);
+            end = open ? Date.now() : e.endTs;
+            if (end < e.ts) end = e.ts;
+          }
+          var dispStart = e.ts;
+          var dispEnd = end;
+          var contUp = false;
+          var contDown = false;
+          if (e.type === "sleep") {
+            dispStart = Math.max(e.ts, gridStart);
+            dispEnd = Math.min(end, gridEnd);
+            contUp = e.ts < gridStart;
+            contDown = end > gridEnd;
           }
           // One millisecond makes simultaneous points collide for column
           // assignment without pretending they occupy time on the grid.
-          var layoutEnd = isPoint ? e.ts + 1 : end;
-          return { entry: e, start: e.ts, end: end, layoutEnd: layoutEnd, isPoint: isPoint, col: 0, cols: 1 };
+          var layoutEnd = isPoint ? e.ts + 1 : dispEnd;
+          return {
+            entry: e, start: e.ts, end: end,
+            dispStart: dispStart, dispEnd: dispEnd, layoutEnd: layoutEnd,
+            isPoint: isPoint, open: open, contUp: contUp, contDown: contDown,
+            col: 0, cols: 1
+          };
         }).sort(function (a, b) {
           return a.start - b.start || b.end - a.end;
         });
@@ -2530,7 +2676,7 @@
         var cluster = [];
         var clusterEnd = -Infinity;
         items.forEach(function (item) {
-          if (cluster.length && item.start >= clusterEnd) {
+          if (cluster.length && item.dispStart >= clusterEnd) {
             clusters.push(cluster);
             cluster = [];
             clusterEnd = -Infinity;
@@ -2544,7 +2690,7 @@
           var columnEnds = [];
           group.forEach(function (item) {
             var col = 0;
-            while (col < columnEnds.length && columnEnds[col] > item.start) col++;
+            while (col < columnEnds.length && columnEnds[col] > item.dispStart) col++;
             item.col = col;
             columnEnds[col] = item.layoutEnd;
           });
@@ -2556,13 +2702,13 @@
 
       function placeCalendarEvent(plot, item, leftPct, widthPct, className) {
         var b = calendarEventButton(item, className);
-        var exactTop = eventTop(item.start);
+        var exactTop = eventTop(item.dispStart);
         var pointHeight = className === "week-event" ? 20 : 24;
         var top = item.isPoint ? exactTop - pointHeight / 2 : exactTop;
         top = Math.max(0, Math.min(959, top));
         var height = item.isPoint
           ? pointHeight
-          : Math.max(8, ((item.end - item.start) / 60000 / 60) * 64);
+          : Math.max(8, ((item.dispEnd - item.dispStart) / 60000 / 60) * 64);
         height = Math.min(height, 960 - top);
         b.style.top = top + "px";
         b.style.height = height + "px";
@@ -2579,8 +2725,8 @@
         $("dayLoading").hidden = !state.calendarLoading;
         var grid = $("dayTimeGrid");
         var plot = buildTimeGrid(grid);
-        var dayList = list.filter(function (e) { return sameDay(e.ts, selected) && inTimeGrid(e); });
-        var items = layoutOverlapColumns(calendarRanges(dayList));
+        var dayList = list.filter(function (e) { return overlapsDay(e, selected) && inGridWindow(e, selected); });
+        var items = layoutOverlapColumns(calendarRanges(dayList, selected));
         items.forEach(function (item) {
           placeCalendarEvent(plot, item, item.col * 100 / item.cols, 100 / item.cols, "day-event");
         });
@@ -2619,8 +2765,8 @@
         var plot = buildTimeGrid(grid);
         for (var dayIndex = 0; dayIndex < 7; dayIndex++) {
           var dayTs = addDays(weekStart, dayIndex);
-          var dayList = list.filter(function (e) { return sameDay(e.ts, dayTs) && inTimeGrid(e); });
-          var items = layoutOverlapColumns(calendarRanges(dayList));
+          var dayList = list.filter(function (e) { return overlapsDay(e, dayTs) && inGridWindow(e, dayTs); });
+          var items = layoutOverlapColumns(calendarRanges(dayList, dayTs));
           items.forEach(function (item) {
             var left = (dayIndex + item.col / item.cols) * 100 / 7;
             var width = (1 / item.cols) * 100 / 7;
@@ -2677,7 +2823,7 @@
         $("calendarDayTitle").textContent = sameDay(selected, now)
           ? "Today's timeline"
           : new Date(selected).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
-        var dayList = list.filter(function (e) { return sameDay(e.ts, selected); });
+        var dayList = list.filter(function (e) { return overlapsDay(e, selected); });
         $("calendarDayTotal").textContent = dayList.length ? dayList.length + (dayList.length === 1 ? " entry" : " entries") : "No entries";
         var counts = $("calendarDayCounts");
         counts.innerHTML = "";
@@ -2783,6 +2929,46 @@
         $("insDuePoop").textContent = dq[0];
         $("insDuePoopNote").textContent = dq[1];
 
+        // Sleep totals — computed only from sleep entries, so they never
+        // touch the pee/poop gap math above. An open sleep counts to now.
+        var sleepList = dogEntries().filter(function (e) { return e.type === "sleep"; });
+        function sleepMsBetween(a, b) {
+          var total = 0;
+          sleepList.forEach(function (e) {
+            var end = e.endTs && e.endTs > e.ts ? e.endTs : now;
+            var s = Math.max(e.ts, a);
+            var en = Math.min(end, b);
+            if (en > s) total += en - s;
+          });
+          return total;
+        }
+        $("insSleepToday").textContent = sleepList.length ? fmtDur(sleepMsBetween(startOfDay(now), now) / 60000) : "—";
+        $("insSleep24").textContent = sleepList.length ? fmtDur(sleepMsBetween(now - 86400000, now) / 60000) : "—";
+        var sevenAgo = now - 7 * 86400000;
+        var recentSleeps = sleepList.filter(function (e) {
+          return e.ts >= sevenAgo || (e.endTs && e.endTs >= sevenAgo);
+        });
+        $("insSleepCount").textContent = sleepList.length ? String(recentSleeps.length) : "—";
+        var finishedSleeps = recentSleeps.filter(function (e) { return e.endTs && e.endTs > e.ts; });
+        if (finishedSleeps.length) {
+          var sleepDurs = finishedSleeps.map(function (e) { return (e.endTs - e.ts) / 60000; });
+          var sleepSum = 0;
+          sleepDurs.forEach(function (d) { sleepSum += d; });
+          $("insSleepAvg").textContent = fmtDur(sleepSum / sleepDurs.length);
+          $("insSleepLongest").textContent = fmtDur(Math.max.apply(null, sleepDurs));
+        } else {
+          $("insSleepAvg").textContent = "—";
+          $("insSleepLongest").textContent = "—";
+        }
+        var lastSleep = null;
+        sleepList.forEach(function (e) {
+          if (e.endTs && e.endTs > e.ts && (!lastSleep || e.endTs > lastSleep.endTs)) lastSleep = e;
+        });
+        $("insSleepLast").textContent = lastSleep ? fmtDur((lastSleep.endTs - lastSleep.ts) / 60000) : "—";
+        $("insSleepLastNote").textContent = lastSleep
+          ? "ended " + fmtClock(lastSleep.endTs) + (sameDay(lastSleep.endTs, now) ? "" : " · " + dayLabel(lastSleep.endTs, now))
+          : "not logged yet";
+
         renderChart();
         renderLast7(now);
       }
@@ -2872,6 +3058,7 @@
         renderWeek(now);
         renderChips();
         renderStatus(now);
+        renderSleep(now);
         renderFeed(now);
         renderCalendar(now);
         renderInsights(now);
@@ -2880,8 +3067,10 @@
       /* ---------- toast / undo ---------- */
       var toastTimer = null;
       var toastHideTimer = null;
-      function showToast(msg) {
+      var toastUndoFn = null;
+      function showToast(msg, undoFn) {
         var toast = $("toast");
+        toastUndoFn = undoFn || null;
         $("toastText").textContent = msg;
         clearTimeout(toastHideTimer);
         toast.hidden = false;
@@ -2894,12 +3083,16 @@
       function hideToast() {
         var toast = $("toast");
         toast.classList.remove("show");
+        toastUndoFn = null;
         clearTimeout(toastTimer);
         clearTimeout(toastHideTimer);
         toastHideTimer = setTimeout(function () { toast.hidden = true; }, 260);
       }
       $("undoBtn").addEventListener("click", function () {
-        if (state.lastCreatedId != null) deleteEntry(state.lastCreatedId);
+        var fn = toastUndoFn;
+        toastUndoFn = null;
+        if (fn) fn();
+        else if (state.lastCreatedId != null) deleteEntry(state.lastCreatedId);
         hideToast();
         renderAll();
       });
@@ -2942,6 +3135,17 @@
           });
           grid.appendChild(b);
         });
+        var sleepBtnMore = document.createElement("button");
+        sleepBtnMore.type = "button";
+        sleepBtnMore.innerHTML = '<span style="color:var(--sleep);display:grid;place-items:center;width:30px;height:30px">' +
+          TYPES.sleep.icon + "</span>" + TYPES.sleep.label;
+        sleepBtnMore.querySelector("svg").setAttribute("width", "30");
+        sleepBtnMore.querySelector("svg").setAttribute("height", "30");
+        sleepBtnMore.addEventListener("click", function () {
+          closeSheets();
+          toggleSleep();
+        });
+        grid.appendChild(sleepBtnMore);
       })();
       $("moreBtn").addEventListener("click", function () { openSheet("moreSheet"); });
 
@@ -3084,6 +3288,62 @@
         return state.entries.find(function (e) { return e.id === id; }) || null;
       }
 
+      /* ---------- sleep toggle ---------- */
+      // An open sleep is a sleep entry for the current profile with no end
+      // time yet. Profiles are independent: each dog has at most one.
+      function openSleep() {
+        var list = dogEntries().filter(function (e) { return e.type === "sleep" && !e.endTs; });
+        return list.length ? list[0] : null;
+      }
+
+      function toggleSleep() {
+        var now = Date.now();
+        var open = openSleep();
+        if (open) {
+          open.endTs = now;
+          state.calendarEntries.forEach(function (ce) {
+            if (ce.id === open.id) ce.endTs = now;
+          });
+          persistSave(open);
+          refreshCalendarIfOpen();
+          showToast("Sleep ended · " + fmtDur((now - open.ts) / 60000) + " for " + currentDog().name, function () {
+            open.endTs = null;
+            state.calendarEntries.forEach(function (ce) {
+              if (ce.id === open.id) ce.endTs = null;
+            });
+            persistSave(open);
+            renderAll();
+          });
+        } else {
+          var e = {
+            id: "tmp-" + (++state.seq) + "-" + now,
+            dog: state.dog, type: "sleep", ts: now, endTs: null,
+            note: "", pending: true, unconfirmed: true
+          };
+          state.entries.push(e);
+          state.lastCreatedId = e.id;
+          queueInsert(e);
+          showToast(currentDog().name + " is sleeping · since " + fmtClock(now));
+        }
+        renderAll();
+      }
+
+      function renderSleep(now) {
+        var open = openSleep();
+        var banner = $("sleepBanner");
+        if (banner) {
+          banner.hidden = !open;
+          if (open) {
+            $("sleepBannerText").textContent = currentDog().name + " is sleeping · since " + fmtClock(open.ts);
+            $("sleepBannerDur").textContent = fmtDur((now - open.ts) / 60000) + " so far";
+          }
+        }
+        var lbl = $("sleepBtnLabel");
+        if (lbl) lbl.textContent = open ? "Wake" : "Sleep";
+        var btn = $("sleepBtn");
+        if (btn) btn.classList.toggle("sleeping", !!open);
+      }
+
       function openEdit(id, isNew) {
         var e = findEntry(id);
         if (!e) return;
@@ -3097,12 +3357,17 @@
         $("editTitle").textContent = TYPES[e.type].label;
         $("editSub").textContent = "Logged for " + (dog ? dog.name : "") + " · " + fmtClock(e.ts);
         $("editNote").value = e.note || "";
-        $("editWhenLabel").textContent = e.type === "walk" ? "Start time" : "Date & time";
-        $("editWhen").setAttribute("aria-label", e.type === "walk" ? "Walk start time" : "Entry date and time");
+        var isDur = isDurationType(e.type);
+        $("editWhenLabel").textContent = isDur ? "Start time" : "Date & time";
+        $("editWhen").setAttribute("aria-label", isDur ? TYPES[e.type].label + " start time" : "Entry date and time");
         $("editWhen").value = toLocalInput(e.ts);
-        $("editEndWrap").hidden = e.type !== "walk";
+        $("editEndWrap").hidden = !isDur;
+        $("editEndLabel").textContent = e.type === "sleep" ? "End time · blank = still sleeping" : "End time";
+        $("editEnd").setAttribute("aria-label", TYPES[e.type].label + " end time");
         if (e.type === "walk") {
           $("editEnd").value = toLocalInput(e.endTs && e.endTs > e.ts ? e.endTs : e.ts + 30 * 60000);
+        } else if (e.type === "sleep") {
+          $("editEnd").value = e.endTs && e.endTs > e.ts ? toLocalInput(e.endTs) : "";
         } else {
           $("editEnd").value = "";
         }
@@ -3140,6 +3405,10 @@
           var endValue = $("editEnd").value;
           var parsedEnd = endValue ? new Date(endValue).getTime() : NaN;
           e.endTs = !isNaN(parsedEnd) && parsedEnd > e.ts ? parsedEnd : e.ts + 30 * 60000;
+        } else if (e.type === "sleep") {
+          var sleepEndValue = $("editEnd").value;
+          var sleepParsedEnd = sleepEndValue ? new Date(sleepEndValue).getTime() : NaN;
+          e.endTs = !isNaN(sleepParsedEnd) && sleepParsedEnd > e.ts ? sleepParsedEnd : null;
         } else {
           e.endTs = null;
         }
@@ -3165,6 +3434,11 @@
 
       document.querySelectorAll("[data-quick]").forEach(function (btn) {
         btn.addEventListener("click", function () { quickLog(btn.getAttribute("data-quick")); });
+      });
+      $("sleepBtn").addEventListener("click", toggleSleep);
+      $("sleepBanner").addEventListener("click", function () {
+        var open = openSleep();
+        if (open) openEdit(open.id, false);
       });
 
       /* ---------- init ---------- */
