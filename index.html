@@ -336,6 +336,7 @@
       }
       .due.show { display: block; }
       .due.overdue { background: var(--danger-bg); color: var(--danger); }
+      .gap-caption { margin: 10px 0 0; font-size: 12px; font-weight: 600; color: var(--ink-soft); line-height: 1.4; }
 
       /* ---------- Feed ---------- */
       section { margin-top: 26px; }
@@ -1264,6 +1265,7 @@
               <div class="s" id="typicalGapNote">&nbsp;</div>
             </div>
           </div>
+          <p class="gap-caption">Gaps counted within each day only — overnight sleep excluded.</p>
           <div class="due" id="dueBanner"></div>
         </div>
 
@@ -1386,6 +1388,7 @@
                 <div class="s" id="insDuePoopNote">&nbsp;</div>
               </div>
             </div>
+            <p class="gap-caption">Gaps counted within each day only — overnight sleep excluded.</p>
           </div>
         </section>
 
@@ -2168,18 +2171,29 @@
         return list.length ? list[0] : null;
       }
       function isPotty(e) { return e.type === "pee" || e.type === "poop"; }
-      // Median gap (minutes) between consecutive events of one type; null until 3+ events.
+      // Median gap (minutes) between consecutive events of one type, using
+      // INTRA-DAY intervals only: entries are grouped by calendar day (local
+      // time) and only consecutive pairs within the same day count. An
+      // interval crossing midnight (last event of one day → first of the
+      // next) is never counted, so overnight sleep never inflates the gap.
+      // Null until at least 2 intra-day intervals exist.
       function medianGapMin(type) {
-        var times = dogEntries()
+        var byDay = {};
+        dogEntries()
           .filter(function (e) { return e.type === type; })
-          .map(function (e) { return e.ts; })
-          .sort(function (a, b) { return a - b; });
-        if (times.length < 3) return null;
+          .forEach(function (e) {
+            var dayKey = startOfDay(e.ts);
+            if (!byDay[dayKey]) byDay[dayKey] = [];
+            byDay[dayKey].push(e.ts);
+          });
         var gaps = [];
-        for (var i = 1; i < times.length; i++) {
-          var g = (times[i] - times[i - 1]) / 60000;
-          if (g > 10 && g < 720) gaps.push(g);
-        }
+        Object.keys(byDay).forEach(function (dayKey) {
+          var times = byDay[dayKey].sort(function (a, b) { return a - b; });
+          for (var i = 1; i < times.length; i++) {
+            var g = (times[i] - times[i - 1]) / 60000;
+            if (g > 10 && g < 720) gaps.push(g);
+          }
+        });
         if (gaps.length < 2) return null;
         gaps.sort(function (a, b) { return a - b; });
         return gaps[Math.floor(gaps.length / 2)];
@@ -2275,7 +2289,7 @@
         $("typicalGapNote").textContent = gap ? "between potty trips" : "needs a few logs";
 
         var banner = $("dueBanner");
-        if (lastAny && gap) {
+        if (lastAny && gap && sameDay(lastAny.ts, now)) {
           var dueAt = lastAny.ts + gap * 60000;
           var minsLeft = Math.round((dueAt - now) / 60000);
           banner.className = "due show" + (minsLeft <= 0 ? " overdue" : "");
@@ -2736,6 +2750,7 @@
 
         function dueText(last, gap) {
           if (!last) return ["—", "not logged yet"];
+          if (!sameDay(last.ts, now)) return ["—", "waiting for today's first log"];
           if (!gap) return ["—", "log a few more to estimate"];
           var dueAt = last.ts + gap * 60000;
           var minsLeft = Math.round((dueAt - now) / 60000);
