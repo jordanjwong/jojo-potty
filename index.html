@@ -922,6 +922,8 @@
         background: rgba(20, 14, 8, 0.45);
         z-index: 30;
         display: none;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
       }
       .scrim.show { display: block; }
       .sheet {
@@ -941,13 +943,48 @@
         box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.25);
       }
       .sheet.show { transform: translate(-50%, 0); }
+      .sheet-drag {
+        margin: -10px -18px 2px;
+        padding: 12px 18px 10px;
+        touch-action: none;
+        cursor: grab;
+        -webkit-tap-highlight-color: transparent;
+      }
       .sheet .grab {
-        width: 40px; height: 5px;
+        width: 44px; height: 5px;
         border-radius: 999px;
         background: var(--line);
-        margin: 4px auto 14px;
+        margin: 0 auto;
+        pointer-events: none;
       }
-      .sheet h3 { margin: 0 0 12px; font-size: 18px; font-weight: 900; }
+      .sheet.dragging { transition: none; cursor: grabbing; }
+      .sheet-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin: 0 0 12px;
+        touch-action: none;
+      }
+      .sheet h3 { margin: 0; font-size: 18px; font-weight: 900; }
+      .sheet-close {
+        width: 44px; height: 44px;
+        min-width: 44px; min-height: 44px;
+        border: 1px solid var(--line);
+        border-radius: 50%;
+        background: var(--surface-2);
+        color: var(--ink);
+        font-size: 24px;
+        font-weight: 800;
+        line-height: 1;
+        display: grid;
+        place-items: center;
+        padding: 0 0 2px;
+        cursor: pointer;
+        flex: none;
+        -webkit-tap-highlight-color: transparent;
+      }
+      .sheet-close:active { transform: scale(0.94); }
       .more-grid {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
@@ -1016,13 +1053,21 @@
         gap: 8px;
       }
       .edit-top .back {
+        width: 44px; height: 44px;
+        min-width: 44px; min-height: 44px;
         border: 0;
+        border-radius: 12px;
         background: transparent;
         color: var(--brand);
-        font-size: 26px;
+        font-size: 30px;
         line-height: 1;
-        padding: 6px 8px 6px 0;
+        padding: 0 0 2px;
+        margin-left: -8px;
+        display: grid;
+        place-items: center;
         cursor: pointer;
+        flex: none;
+        -webkit-tap-highlight-color: transparent;
       }
       .edit-top .who { font-weight: 800; font-size: 15px; color: var(--ink-soft); }
       .edit-hero {
@@ -1519,16 +1564,22 @@
 
     <!-- More sheet -->
     <div class="scrim" id="scrim"></div>
-    <div class="sheet" id="moreSheet" role="dialog" aria-label="More activities" hidden>
-      <div class="grab"></div>
-      <h3>Log an activity</h3>
+    <div class="sheet" id="moreSheet" role="dialog" aria-modal="true" aria-label="More activities" hidden>
+      <div class="sheet-drag" data-sheet-drag><div class="grab"></div></div>
+      <div class="sheet-head">
+        <h3>Log an activity</h3>
+        <button class="sheet-close" type="button" data-close-sheet aria-label="Close menu">×</button>
+      </div>
       <div class="more-grid" id="moreGrid"></div>
     </div>
 
     <!-- Profile sheet -->
-    <div class="sheet" id="dogSheet" role="dialog" aria-label="Choose dog" hidden>
-      <div class="grab"></div>
-      <h3>Who are we logging for?</h3>
+    <div class="sheet" id="dogSheet" role="dialog" aria-modal="true" aria-label="Choose dog" hidden>
+      <div class="sheet-drag" data-sheet-drag><div class="grab"></div></div>
+      <div class="sheet-head">
+        <h3>Who are we logging for?</h3>
+        <button class="sheet-close" type="button" data-close-sheet aria-label="Close">×</button>
+      </div>
       <div id="dogList"></div>
     </div>
 
@@ -3098,26 +3149,128 @@
       });
 
       /* ---------- sheets ---------- */
+      // Every close path (× button, backdrop tap, swipe-down, Escape) funnels
+      // into closeSheets(), which only hides the overlay: it never logs,
+      // saves, re-renders, or touches tab/scroll state, so the user lands
+      // exactly where they were and sheets can be opened/closed repeatedly.
       var sheetHideTimers = {};
+      var SHEET_IDS = ["moreSheet", "dogSheet"];
+      function resetSheetDrag(sheet) {
+        sheet.classList.remove("dragging");
+        sheet.style.transform = "";
+      }
       function openSheet(id) {
+        // Never stack two sheets: hide any other instantly before opening.
+        SHEET_IDS.forEach(function (otherId) {
+          if (otherId === id) return;
+          var other = $(otherId);
+          clearTimeout(sheetHideTimers[otherId]);
+          other.classList.remove("show");
+          resetSheetDrag(other);
+          other.hidden = true;
+        });
         var sheet = $(id);
         clearTimeout(sheetHideTimers[id]);
         $("scrim").classList.add("show");
         sheet.hidden = false;
+        resetSheetDrag(sheet);
         void sheet.offsetWidth;
         sheet.classList.add("show");
       }
       function closeSheets() {
         $("scrim").classList.remove("show");
-        ["moreSheet", "dogSheet"].forEach(function (id) {
+        SHEET_IDS.forEach(function (id) {
           var sheet = $(id);
           if (sheet.hidden) return;
+          resetSheetDrag(sheet);
           sheet.classList.remove("show");
           clearTimeout(sheetHideTimers[id]);
           sheetHideTimers[id] = setTimeout(function () { sheet.hidden = true; }, 260);
         });
       }
-      $("scrim").addEventListener("click", closeSheets);
+      // Backdrop dismissal: a plain <div> doesn't reliably receive click
+      // taps in iOS standalone/home-screen web apps, so close on touchend
+      // as well as click (preventDefault stops the synthetic click that
+      // would otherwise follow, keeping this a single close).
+      var scrimEl = $("scrim");
+      scrimEl.addEventListener("click", closeSheets);
+      scrimEl.addEventListener("touchend", function (ev) {
+        ev.preventDefault();
+        closeSheets();
+      }, { passive: false });
+      // Visible close (×) buttons in each sheet header.
+      document.querySelectorAll("[data-close-sheet]").forEach(function (btn) {
+        btn.addEventListener("click", closeSheets);
+      });
+      document.addEventListener("keydown", function (ev) {
+        if (ev.key === "Escape") closeSheets();
+      });
+
+      // Swipe-down to dismiss: dragging the grab handle (or the sheet
+      // header) moves the sheet with the finger; releasing past ~72px —
+      // or a short fast flick — closes it, otherwise it snaps back.
+      function attachSheetDrag(sheet) {
+        var handles = sheet.querySelectorAll("[data-sheet-drag], .sheet-head");
+        var startY = null;
+        var dy = 0;
+        var startT = 0;
+        function begin(y) {
+          startY = y;
+          dy = 0;
+          startT = Date.now();
+          sheet.classList.add("dragging");
+        }
+        function move(y) {
+          if (startY == null) return;
+          dy = y - startY;
+          if (dy < 0) dy = 0;
+          if (dy > 0) sheet.style.transform = "translate(-50%, " + dy + "px)";
+        }
+        function end() {
+          if (startY == null) return;
+          var dt = Math.max(1, Date.now() - startT);
+          var velocity = dy / dt;
+          var shouldClose = dy > 72 || (dy > 24 && velocity > 0.55);
+          startY = null;
+          dy = 0;
+          if (shouldClose) closeSheets();
+          else { sheet.classList.remove("dragging"); sheet.style.transform = ""; }
+        }
+        handles.forEach(function (h) {
+          h.addEventListener("pointerdown", function (ev) {
+            if (!sheet.classList.contains("show")) return;
+            if (ev.target && ev.target.closest && ev.target.closest("button")) return;
+            begin(ev.clientY);
+            if (h.setPointerCapture && ev.pointerId != null) {
+              try { h.setPointerCapture(ev.pointerId); } catch (err) { /* capture is best-effort */ }
+            }
+            ev.preventDefault();
+          });
+          h.addEventListener("pointermove", function (ev) {
+            if (startY == null) return;
+            move(ev.clientY);
+            ev.preventDefault();
+          });
+          h.addEventListener("pointerup", end);
+          h.addEventListener("pointercancel", end);
+          // Touch fallback for browsers without Pointer Events.
+          if (!window.PointerEvent) {
+            h.addEventListener("touchstart", function (ev) {
+              if (ev.target && ev.target.closest && ev.target.closest("button")) return;
+              if (ev.touches.length === 1) begin(ev.touches[0].clientY);
+            }, { passive: true });
+            h.addEventListener("touchmove", function (ev) {
+              if (startY != null && ev.touches.length === 1) {
+                move(ev.touches[0].clientY);
+                ev.preventDefault();
+              }
+            }, { passive: false });
+            h.addEventListener("touchend", end);
+            h.addEventListener("touchcancel", end);
+          }
+        });
+      }
+      SHEET_IDS.forEach(function (id) { attachSheetDrag($(id)); });
 
       // More grid: all six activity types
       (function buildMoreGrid() {
