@@ -1551,6 +1551,18 @@
         d.setHours(0, 0, 0, 0);
         return d.getTime();
       }
+      // Potty day for gap math only: runs 4:00am local to 3:59am next
+      // morning. After midnight JoJo does not pee until he wakes around
+      // 9–10am, so a 12:30am / 2am entry belongs to the previous evening's
+      // potty day and the wake-up pee starts a fresh potty day. Calendar
+      // displays (feed, counts, Calendar views) keep using startOfDay.
+      function startOfPottyDay(ts) {
+        var d = new Date(ts);
+        d.setHours(4, 0, 0, 0);
+        if (ts < d.getTime()) d.setDate(d.getDate() - 1);
+        return d.getTime();
+      }
+      function samePottyDay(a, b) { return startOfPottyDay(a) === startOfPottyDay(b); }
       function startOfMonth(ts) {
         var d = new Date(ts);
         d.setDate(1);
@@ -2172,17 +2184,19 @@
       }
       function isPotty(e) { return e.type === "pee" || e.type === "poop"; }
       // Median gap (minutes) between consecutive events of one type, using
-      // INTRA-DAY intervals only: entries are grouped by calendar day (local
-      // time) and only consecutive pairs within the same day count. An
-      // interval crossing midnight (last event of one day → first of the
-      // next) is never counted, so overnight sleep never inflates the gap.
-      // Null until at least 2 intra-day intervals exist.
+      // INTRA-POTTY-DAY intervals only: entries are grouped by potty day
+      // (4:00am local to 3:59am next morning, see startOfPottyDay) and only
+      // consecutive pairs within the same potty day count. An interval
+      // crossing a potty-day boundary — e.g. a 12:30am pee → the 9:30am
+      // wake-up pee — is never counted, so overnight sleep (midnight to
+      // ~9–10am wake) never inflates the gap. Null until at least 2
+      // intra-potty-day intervals exist.
       function medianGapMin(type) {
         var byDay = {};
         dogEntries()
           .filter(function (e) { return e.type === type; })
           .forEach(function (e) {
-            var dayKey = startOfDay(e.ts);
+            var dayKey = startOfPottyDay(e.ts);
             if (!byDay[dayKey]) byDay[dayKey] = [];
             byDay[dayKey].push(e.ts);
           });
@@ -2196,7 +2210,10 @@
         });
         if (gaps.length < 2) return null;
         gaps.sort(function (a, b) { return a - b; });
-        return gaps[Math.floor(gaps.length / 2)];
+        var mid = Math.floor(gaps.length / 2);
+        // True median: for an even count, average the two middle values
+        // (e.g. intervals 2.5h + 3.5h → 3h), not just the upper one.
+        return gaps.length % 2 ? gaps[mid] : (gaps[mid - 1] + gaps[mid]) / 2;
       }
       function countOn(dayTs, type) {
         return dogEntries().filter(function (e) {
@@ -2289,7 +2306,7 @@
         $("typicalGapNote").textContent = gap ? "between potty trips" : "needs a few logs";
 
         var banner = $("dueBanner");
-        if (lastAny && gap && sameDay(lastAny.ts, now)) {
+        if (lastAny && gap && samePottyDay(lastAny.ts, now)) {
           var dueAt = lastAny.ts + gap * 60000;
           var minsLeft = Math.round((dueAt - now) / 60000);
           banner.className = "due show" + (minsLeft <= 0 ? " overdue" : "");
@@ -2750,7 +2767,7 @@
 
         function dueText(last, gap) {
           if (!last) return ["—", "not logged yet"];
-          if (!sameDay(last.ts, now)) return ["—", "waiting for today's first log"];
+          if (!samePottyDay(last.ts, now)) return ["—", "waiting for today's first log"];
           if (!gap) return ["—", "log a few more to estimate"];
           var dueAt = last.ts + gap * 60000;
           var minsLeft = Math.round((dueAt - now) / 60000);
