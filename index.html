@@ -47,6 +47,9 @@
         --sleep-bg: #e7e9f6;
         --danger: #c0392b;
         --danger-bg: #fbe7e3;
+        --untracked: #92400e;
+        --untracked-bg: #fef3c7;
+        --untracked-border: #f59e0b;
         --calendar-accent: #49368f;
         --calendar-accent-soft: #eeeafd;
         --calendar-pee: #a100a8;
@@ -83,6 +86,9 @@
           --sleep-bg: #272c4a;
           --danger: #ef8a7d;
           --danger-bg: #422320;
+          --untracked: #fcd34d;
+          --untracked-bg: #3f3218;
+          --untracked-border: #b45309;
           --calendar-accent: #a99af0;
           --calendar-accent-soft: #30294b;
           --calendar-pee: #d45ada;
@@ -341,6 +347,48 @@
       .due.show { display: block; }
       .due.overdue { background: var(--danger-bg); color: var(--danger); }
       .gap-caption { margin: 10px 0 0; font-size: 12px; font-weight: 600; color: var(--ink-soft); line-height: 1.4; }
+      /* ---------- Not fully tracked ---------- */
+      .untracked-wrap { margin-top: 12px; }
+      .untracked-toggle {
+        width: 100%;
+        display: flex; align-items: center; gap: 12px;
+        background: var(--surface); border: 1px solid var(--line); border-radius: 16px;
+        box-shadow: var(--shadow); padding: 12px 14px; cursor: pointer; text-align: left; color: var(--ink);
+        -webkit-tap-highlight-color: transparent;
+      }
+      .untracked-toggle .ut-text { flex: 1; min-width: 0; }
+      .untracked-toggle .ut-title { display: block; font-weight: 900; font-size: 15px; line-height: 1.2; }
+      .untracked-toggle .ut-sub { display: block; font-size: 12.5px; font-weight: 600; color: var(--ink-soft); margin-top: 1px; }
+      .untracked-toggle .ut-pill {
+        width: 50px; height: 30px; border-radius: 999px; background: var(--line); flex: none; position: relative; transition: background .18s ease;
+      }
+      .untracked-toggle .ut-pill::after {
+        content: ""; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.25); transition: left .18s ease;
+      }
+      .untracked-toggle[aria-pressed="true"] { border-color: var(--untracked-border); background: var(--untracked-bg); }
+      .untracked-toggle[aria-pressed="true"] .ut-pill { background: var(--untracked-border); }
+      .untracked-toggle[aria-pressed="true"] .ut-pill::after { left: 23px; }
+      .untracked-toggle .ut-sync { display: block; font-size: 11px; font-weight: 800; color: var(--danger); margin-top: 2px; }
+      .untracked-banner {
+        margin-top: 10px; background: var(--untracked-bg); color: var(--untracked);
+        border: 1px solid var(--untracked-border); border-radius: 14px; padding: 11px 14px;
+        font-weight: 800; font-size: 14px; display: flex; gap: 8px; align-items: flex-start; line-height: 1.35;
+      }
+      .untracked-badge {
+        display: inline-flex; align-items: center; gap: 5px; background: var(--untracked-bg); color: var(--untracked);
+        border: 1px solid var(--untracked-border); border-radius: 999px; padding: 3px 9px; font-size: 11px; font-weight: 900; white-space: nowrap;
+      }
+      .untracked-caption { margin: 10px 2px 0; font-size: 13px; font-weight: 700; color: var(--untracked); }
+      .cal-untracked-bar { padding: 10px 12px; background: var(--surface); border-bottom: 1px solid var(--line); }
+      .cal-untracked-bar .untracked-wrap { margin-top: 0; }
+      .cal-untracked-bar .untracked-toggle { box-shadow: none; }
+      .month-day { position: relative; }
+      .month-day .untracked-dot { position: absolute; top: 6px; right: 6px; width: 10px; height: 10px; border-radius: 50%; background: var(--untracked-border); box-shadow: 0 0 0 2px var(--surface); z-index: 2; }
+      .day-count.untracked { color: var(--untracked); background: var(--untracked-bg); border: 1px dashed var(--untracked-border); }
+      .week-day-head .untracked-mini { display: block; margin-top: 3px; font-size: 7.5px; font-weight: 900; color: var(--untracked); background: var(--untracked-bg); border-radius: 999px; padding: 2px 3px; line-height: 1.1; }
+      .dayrow .untracked-badge { margin-left: 6px; }
+      .wday .num .ut-dot { position: absolute; bottom: -1px; right: -1px; width: 10px; height: 10px; border-radius: 50%; background: var(--untracked-border); border: 2px solid var(--surface); }
+      .feed-badge-wrap { margin: 0 0 10px; }
 
       /* ---------- Sleep status banner ---------- */
       .sleep-banner {
@@ -1347,6 +1395,8 @@
           <div class="due" id="dueBanner"></div>
         </div>
 
+        <div id="untrackedTodayWrap"></div>
+
         <!-- Sleep status (visible only while a sleep is open for this profile) -->
         <button class="sleep-banner" id="sleepBanner" type="button" hidden>
           <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
@@ -1373,6 +1423,7 @@
               <button class="range-nav" id="dayNext" type="button" aria-label="Next day">›</button>
             </div>
             <span class="range-loading" id="dayLoading" hidden>Updating this day…</span>
+            <div class="cal-untracked-bar" id="calDayUntrackedWrap"></div>
             <div class="time-grid" id="dayTimeGrid"></div>
           </div>
         </div>
@@ -1409,6 +1460,7 @@
               <h3 id="calendarDayTitle">—</h3>
               <span id="calendarDayTotal"></span>
             </div>
+            <div id="calMonthUntrackedWrap" style="margin-bottom:12px"></div>
             <div class="day-counts" id="calendarDayCounts"></div>
             <div id="calendarTimeline"></div>
           </section>
@@ -1436,6 +1488,7 @@
           <h3>Counts by activity</h3>
           <div class="counts-grid" id="countsGrid"></div>
           <p class="note" style="font-size:13px;font-weight:600;color:var(--ink-soft);margin:10px 2px 0">Big number is today; underneath is the last 7 days.</p>
+          <p class="untracked-caption">Marked days are excluded from averages.</p>
         </section>
 
         <section>
@@ -1628,6 +1681,7 @@
       };
 
       ICONS.moon = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+      ICONS.alert = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2 1.8 20.2h20.4L12 2zm0 6.2 4.8 8.6H7.2L12 8.2zM11 11v3.2h2V11h-2zm0 4.4v2h2v-2h-2z"/></svg>';
 
       var TYPES = {
         pee:   { label: "Pee",   icon: ICONS.drop },
@@ -1636,7 +1690,8 @@
         drink: { label: "Drink", icon: ICONS.cup },
         play:  { label: "Play",  icon: ICONS.ball },
         walk:  { label: "Walk",  icon: ICONS.paw },
-        sleep: { label: "Sleep", icon: ICONS.moon }
+        sleep: { label: "Sleep", icon: ICONS.moon },
+        untracked: { label: "Not fully tracked", icon: ICONS.alert }
       };
       // Duration activities carry a real end time (ends_at); the rest are
       // single moments. Sleep stays out of TYPE_ORDER on purpose: it has its
@@ -2044,6 +2099,11 @@
             }
             renderAll();
             refreshCalendarIfOpen();
+            // Retry any locally-kept untracked markers whose insert was
+            // rejected before the constraint was widened.
+            if (typeof requeueFailedUntracked === "function") {
+              try { requeueFailedUntracked(); } catch (e2) {}
+            }
             return true;
           }).catch(function (err) {
             if (i + 1 < attempts) {
@@ -2191,6 +2251,16 @@
           if (op.kind === "insert") {
             var fe = findEntry(op.tempId);
             if (fe) fe.failed = true;
+            // Untracked markers: if the activity constraint doesn't allow
+            // 'untracked' yet, the insert is rejected. Don't let that one
+            // op block every later log — drop it from the queue, keep the
+            // marker locally as "Not saved yet", and requeue on load/poll.
+            if (fe && fe.type === "untracked") {
+              var uidx = opQueue.indexOf(op);
+              if (uidx >= 0) opQueue.splice(uidx, 1);
+              // Continue flushing any ops queued behind the marker.
+              setTimeout(function () { flushQueue(); }, 0);
+            }
           }
           if (navigator.onLine) setConn("error", describeErr(err)); else setConn("offline");
           renderAll();
@@ -2293,10 +2363,17 @@
       }
 
       $("syncRetry").addEventListener("click", function () {
+        // Capture failed untracked markers before clearing flags so we
+        // can re-queue inserts that were dropped from the queue.
+        var failedUntracked = state.entries.filter(function (e) { return e.type === "untracked" && e.failed; });
         state.entries.forEach(function (e) { e.failed = false; });
         state.failStreak = 0;
         if (state.conn === "error" || state.conn === "boot") setConn("boot");
         flushQueue();
+        failedUntracked.forEach(function (e) {
+          var queued = opQueue.some(function (op) { return op.kind === "insert" && op.tempId === e.id; });
+          if (!queued && isTempId(e.id)) queueInsert(e);
+        });
         loadEntries(true);
         if (state.tab === "calendar") loadCalendarRange(true);
         renderAll();
@@ -2313,10 +2390,79 @@
       });
 
       /* ---------- queries ---------- */
+      // 'untracked' markers are NOT activities: dogEntries() excludes them
+      // so feed, counts, timers, patterns, walk auto-extend and sleep
+      // stats never see them. Markers are read via the helpers below.
       function dogEntries() {
         return state.entries
-          .filter(function (e) { return e.dog === state.dog; })
+          .filter(function (e) { return e.dog === state.dog && e.type !== "untracked"; })
           .sort(function (a, b) { return b.ts - a.ts; });
+      }
+      function getAllMarkers() {
+        var seen = {};
+        var out = [];
+        function add(e) {
+          if (!e || e.dog !== state.dog || e.type !== "untracked") return;
+          if (seen[e.id]) return;
+          seen[e.id] = true;
+          out.push(e);
+        }
+        state.entries.forEach(add);
+        if (state.calendarEntries) state.calendarEntries.forEach(add);
+        return out;
+      }
+      function markerForDay(dayTs) {
+        var start = startOfDay(dayTs);
+        var list = getAllMarkers().filter(function (m) { return startOfDay(m.ts) === start; });
+        return list.length ? list[0] : null;
+      }
+      function markersForDay(dayTs) {
+        var start = startOfDay(dayTs);
+        return getAllMarkers().filter(function (m) { return startOfDay(m.ts) === start; });
+      }
+      function isDayMarked(dayTs) { return !!markerForDay(dayTs); }
+      function isPottyDayMarked(pottyDayStartTs) {
+        var calStart = startOfDay(pottyDayStartTs);
+        return isDayMarked(calStart) || isDayMarked(calStart + 86400000);
+      }
+      function noonTs(dayTs) { return startOfDay(dayTs) + 12 * 3600000; }
+      function createMarker(dayTs) {
+        var now = Date.now();
+        var ts = noonTs(dayTs);
+        var e = {
+          id: "tmp-" + (++state.seq) + "-" + now,
+          dog: state.dog, type: "untracked", ts: ts, endTs: null,
+          note: "", pending: true, unconfirmed: true
+        };
+        state.entries.push(e);
+        // Also surface in calendar cache so month/week/day update instantly.
+        if (state.calendarEntries && !state.calendarEntries.some(function (x) { return x.id === e.id; })) {
+          state.calendarEntries.push(e);
+        }
+        queueInsert(e);
+        return e;
+      }
+      function toggleUntracked(dayTs) {
+        var existing = markersForDay(dayTs);
+        if (existing.length) {
+          // Copy ids first; deleteEntry mutates the arrays.
+          var ids = existing.map(function (m) { return m.id; });
+          ids.forEach(function (id) { deleteEntry(id); });
+        } else {
+          createMarker(dayTs);
+        }
+        renderAll();
+      }
+      function requeueFailedUntracked() {
+        state.entries.forEach(function (e) {
+          if (e.type !== "untracked" || !e.failed) return;
+          var queued = opQueue.some(function (op) { return op.kind === "insert" && op.tempId === e.id; });
+          if (!queued) {
+            e.failed = false;
+            e.pending = true;
+            queueInsert(e);
+          }
+        });
       }
       function currentDog() {
         return DOGS.find(function (d) { return d.id === state.dog; });
@@ -2345,6 +2491,8 @@
           });
         var gaps = [];
         Object.keys(byDay).forEach(function (dayKey) {
+          // Exclude any potty day that overlaps a marked calendar day.
+          if (isPottyDayMarked(Number(dayKey))) return;
           var times = byDay[dayKey].sort(function (a, b) { return a - b; });
           for (var i = 1; i < times.length; i++) {
             var g = (times[i] - times[i - 1]) / 60000;
@@ -2395,9 +2543,10 @@
           b.type = "button";
           b.className = "wday" + (sameDay(ts, now) ? " today" : "");
           b.setAttribute("aria-pressed", state.selectedDay === ts ? "true" : "false");
-          b.setAttribute("aria-label", d.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" }));
+          b.setAttribute("aria-label", d.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" }) + (isDayMarked(ts) ? ", not fully tracked" : ""));
           var badge = count ? '<span class="badge">' + count + "</span>" : "";
-          b.innerHTML = '<span class="dn">' + names[i] + '</span><span class="num">' + d.getDate() + badge + "</span>";
+          var utDot = isDayMarked(ts) ? '<span class="ut-dot" aria-hidden="true"></span>' : "";
+          b.innerHTML = '<span class="dn">' + names[i] + '</span><span class="num">' + d.getDate() + badge + utDot + "</span>";
           (function (dayTs) {
             b.addEventListener("click", function () {
               state.selectedDay = dayTs;
@@ -2416,7 +2565,82 @@
           parts += '<span class="chip ' + t + '">' + TYPES[t].icon + TYPES[t].label +
             ' <span class="n">' + countOn(state.selectedDay, t) + "</span></span>";
         });
+        if (isDayMarked(state.selectedDay)) {
+          parts += '<span class="untracked-badge">Not fully tracked</span>';
+        }
         box.innerHTML = parts;
+      }
+
+      /* ---------- render: untracked toggles ---------- */
+      function untrackedToggleElement(dayTs, titleText, bannerText) {
+        var marker = markerForDay(dayTs);
+        var marked = !!marker;
+        var wrap = document.createElement("div");
+        wrap.className = "untracked-wrap";
+        var btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "untracked-toggle";
+        btn.setAttribute("aria-pressed", marked ? "true" : "false");
+        btn.setAttribute("aria-label", titleText + (marked ? ", on" : ", off"));
+        var textSpan = document.createElement("span");
+        textSpan.className = "ut-text";
+        var titleEl = document.createElement("span");
+        titleEl.className = "ut-title";
+        titleEl.textContent = titleText;
+        var subEl = document.createElement("span");
+        subEl.className = "ut-sub";
+        subEl.textContent = marked ? "Marked — stats exclude this day" : "Tap if pees & poos weren't tracked reliably";
+        textSpan.appendChild(titleEl);
+        textSpan.appendChild(subEl);
+        if (marker && marker.failed) {
+          var syncEl = document.createElement("span");
+          syncEl.className = "ut-sync";
+          syncEl.textContent = "Not saved yet — will retry";
+          textSpan.appendChild(syncEl);
+        }
+        var pill = document.createElement("span");
+        pill.className = "ut-pill";
+        pill.setAttribute("aria-hidden", "true");
+        btn.appendChild(textSpan);
+        btn.appendChild(pill);
+        (function (dts) {
+          btn.addEventListener("click", function () { toggleUntracked(dts); });
+        })(dayTs);
+        wrap.appendChild(btn);
+        if (marked) {
+          var banner = document.createElement("div");
+          banner.className = "untracked-banner";
+          banner.textContent = bannerText;
+          wrap.appendChild(banner);
+        }
+        return wrap;
+      }
+      function renderUntrackedAll(now) {
+        var todayWrap = $("untrackedTodayWrap");
+        if (todayWrap) {
+          todayWrap.innerHTML = "";
+          var todayTs = startOfDay(now);
+          todayWrap.appendChild(untrackedToggleElement(todayTs, "Today not fully tracked", "Today is marked not fully tracked — stats exclude it."));
+        }
+        var dayWrap = $("calDayUntrackedWrap");
+        if (dayWrap) {
+          dayWrap.innerHTML = "";
+          var sel = state.calendarSelectedDay;
+          var isToday = sameDay(sel, now);
+          var dayTitle = isToday ? "Today not fully tracked" : new Date(sel).toLocaleDateString(undefined, { month: "short", day: "numeric" }) + " not fully tracked";
+          var dayBanner = isToday ? "Today is marked not fully tracked — stats exclude it." : new Date(sel).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" }) + " is marked not fully tracked — stats exclude it.";
+          // calDayUntrackedWrap already has cal-untracked-bar styling; inner wrap should not add extra margin
+          var el = untrackedToggleElement(sel, dayTitle, dayBanner);
+          dayWrap.appendChild(el);
+        }
+        var monthWrap = $("calMonthUntrackedWrap");
+        if (monthWrap) {
+          monthWrap.innerHTML = "";
+          var sel2 = state.calendarSelectedDay;
+          var isToday2 = sameDay(sel2, now);
+          var toggleMonth = untrackedToggleElement(sel2, isToday2 ? "Today not fully tracked" : "This day not fully tracked", (isToday2 ? "Today" : new Date(sel2).toLocaleDateString(undefined, { month: "long", day: "numeric" })) + " is marked not fully tracked — stats exclude it.");
+          monthWrap.appendChild(toggleMonth);
+        }
       }
 
       /* ---------- render: status ---------- */
@@ -2466,9 +2690,17 @@
       function renderFeed(now) {
         var box = $("timeline");
         var sel = state.selectedDay;
-        $("feedTitle").textContent = sameDay(sel, now)
+        var feedTitleEl = $("feedTitle");
+        feedTitleEl.textContent = sameDay(sel, now)
           ? "Today's activities"
           : "Activities · " + dayLabel(sel, now);
+        if (isDayMarked(sel)) {
+          var fb = document.createElement("span");
+          fb.className = "untracked-badge";
+          fb.style.marginLeft = "8px";
+          fb.textContent = "Not fully tracked";
+          feedTitleEl.appendChild(fb);
+        }
         var list = dogEntries().filter(function (e) { return sameDay(e.ts, sel); });
         if (!list.length) {
           box.innerHTML = '<div class="empty">' +
@@ -2557,13 +2789,13 @@
         var range = calendarRange();
         var list = [];
         state.calendarEntries.forEach(function (e) {
-          if (e.dog === state.dog && e.ts >= range.start && e.ts < range.end) {
+          if (e.dog === state.dog && e.type !== "untracked" && e.ts >= range.start && e.ts < range.end) {
             map[e.id] = true;
             list.push(e);
           }
         });
         state.entries.forEach(function (e) {
-          if (e.dog === state.dog && e.ts >= range.start && e.ts < range.end &&
+          if (e.dog === state.dog && e.type !== "untracked" && e.ts >= range.start && e.ts < range.end &&
               !map[e.id] && (e.pending || e.failed || e.unconfirmed || isTempId(e.id))) {
             list.push(e);
           }
@@ -2773,6 +3005,13 @@
         $("dayLabel").textContent = new Date(selected).toLocaleDateString(undefined, {
           month: "short", day: "numeric", year: "numeric"
         });
+        if (isDayMarked(selected)) {
+          var dbadge = document.createElement("span");
+          dbadge.className = "untracked-badge";
+          dbadge.style.marginLeft = "8px";
+          dbadge.textContent = "Not fully tracked";
+          $("dayLabel").appendChild(dbadge);
+        }
         $("dayLoading").hidden = !state.calendarLoading;
         var grid = $("dayTimeGrid");
         var plot = buildTimeGrid(grid);
@@ -2809,7 +3048,8 @@
           var d = new Date(dayTs);
           var head = document.createElement("span");
           head.className = "week-day-head" + (sameDay(dayTs, now) ? " today" : "");
-          head.innerHTML = d.toLocaleDateString(undefined, { weekday: "short" }).slice(0, 2) + "<strong>" + d.getDate() + "</strong>";
+          head.innerHTML = d.toLocaleDateString(undefined, { weekday: "short" }).slice(0, 2) + "<strong>" + d.getDate() + "</strong>" +
+            (isDayMarked(dayTs) ? '<span class="untracked-mini">Not fully tracked</span>' : "");
           heads.appendChild(head);
         }
         var grid = $("weekTimeGrid");
@@ -2848,11 +3088,14 @@
           b.className = "month-day" + (!inMonth ? " outside" : "") +
             (sameDay(dayTs, now) ? " today" : "") +
             (sameDay(dayTs, state.calendarSelectedDay) ? " selected" : "");
+          var markedDay = inMonth ? isDayMarked(dayTs) : false;
           b.setAttribute("aria-label", d.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" }) +
-            (pee || poop ? ", Pee " + pee + ", Poop " + poop : ", no potty entries"));
+            (pee || poop ? ", Pee " + pee + ", Poop " + poop : ", no potty entries") + (markedDay ? ", not fully tracked" : ""));
           b.innerHTML = '<span class="date-num">' + d.getDate() + "</span>" +
+            (markedDay ? '<span class="untracked-dot" aria-hidden="true"></span>' : "") +
             (pee ? '<span class="day-count pee">Pee ' + pee + "</span>" : "") +
-            (poop ? '<span class="day-count poop">Poop ' + poop + "</span>" : "");
+            (poop ? '<span class="day-count poop">Poop ' + poop + "</span>" : "") +
+            (markedDay ? '<span class="day-count untracked">Not tracked</span>' : "");
           (function (pickedTs, pickedInMonth) {
             b.addEventListener("click", function () {
               state.calendarSelectedDay = pickedTs;
@@ -2874,6 +3117,13 @@
         $("calendarDayTitle").textContent = sameDay(selected, now)
           ? "Today's timeline"
           : new Date(selected).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
+        if (isDayMarked(selected)) {
+          var mbadge = document.createElement("span");
+          mbadge.className = "untracked-badge";
+          mbadge.style.marginLeft = "8px";
+          mbadge.textContent = "Not fully tracked";
+          $("calendarDayTitle").appendChild(mbadge);
+        }
         var dayList = list.filter(function (e) { return overlapsDay(e, selected); });
         $("calendarDayTotal").textContent = dayList.length ? dayList.length + (dayList.length === 1 ? " entry" : " entries") : "No entries";
         var counts = $("calendarDayCounts");
@@ -2926,6 +3176,7 @@
         if (mode === "day") renderDayCalendar(now, list);
         else if (mode === "week") renderWeekCalendar(now, list);
         else renderMonthCalendar(now, list);
+        if (typeof renderUntrackedAll === "function") renderUntrackedAll(now);
       }
 
       /* ---------- render: insights ---------- */
@@ -2937,7 +3188,7 @@
         TYPE_ORDER.forEach(function (t) {
           var today = countOn(now, t);
           var week = dogEntries().filter(function (e) {
-            return e.type === t && e.ts >= sevenStart;
+            return e.type === t && e.ts >= sevenStart && !isDayMarked(e.ts);
           }).length;
           var card = document.createElement("div");
           card.className = "count-card";
@@ -3026,7 +3277,7 @@
 
       function renderChart() {
         var box = $("chartBox");
-        var list = dogEntries().filter(isPotty);
+        var list = dogEntries().filter(isPotty).filter(function (e) { return !isDayMarked(e.ts); });
         if (!list.length) {
           box.innerHTML = "";
           $("chartLegend").hidden = true;
@@ -3094,10 +3345,11 @@
               return '<span class="m"><span class="sw" style="background:var(--' + t + ')"></span>' +
                 TYPES[t].label + " " + counts[t] + "</span>";
             }).join("");
+          var markedBadge = isDayMarked(dayTs) ? '<span class="untracked-badge">Not fully tracked</span>' : "";
           row.innerHTML =
             '<span class="d">' + dayLabel(dayTs, now) +
             '<span class="sub">' + new Date(dayTs).toLocaleDateString(undefined, { month: "short", day: "numeric" }) + "</span></span>" +
-            '<span class="mini">' + (minis || "—") + "</span>" +
+            '<span class="mini">' + (minis || "—") + markedBadge + "</span>" +
             '<span class="tot">' + (total || "") + "</span>";
           box.appendChild(row);
         }
@@ -3500,6 +3752,7 @@
       function openEdit(id, isNew) {
         var e = findEntry(id);
         if (!e) return;
+        if (e.type === "untracked") return;
         state.editingId = id;
         state.editingIsNew = !!isNew;
         var dog = DOGS.find(function (d) { return d.id === e.dog; });
