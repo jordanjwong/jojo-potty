@@ -45,6 +45,8 @@
         --walk-bg: #e9f3dc;
         --sleep: #4a549e;
         --sleep-bg: #e7e9f6;
+        --med: #c2255c;
+        --med-bg: #fae3ee;
         --danger: #c0392b;
         --danger-bg: #fbe7e3;
         --untracked: #92400e;
@@ -84,6 +86,8 @@
           --walk-bg: #2c3a1e;
           --sleep: #a3aee8;
           --sleep-bg: #272c4a;
+          --med: #f08bb4;
+          --med-bg: #40222f;
           --danger: #ef8a7d;
           --danger-bg: #422320;
           --untracked: #fcd34d;
@@ -390,6 +394,42 @@
       .wday .num .ut-dot { position: absolute; bottom: -1px; right: -1px; width: 10px; height: 10px; border-radius: 50%; background: var(--untracked-border); border: 2px solid var(--surface); }
       .feed-badge-wrap { margin: 0 0 10px; }
 
+      /* ---------- Medication ---------- */
+      .med-card {
+        margin-top: 14px;
+        background: var(--surface);
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        box-shadow: var(--shadow);
+        padding: 16px 18px;
+      }
+      .med-head { display: flex; gap: 12px; align-items: flex-start; }
+      .med-head .dot { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; flex: none; }
+      .med-head .dot svg { width: 25px; height: 25px; }
+      .med-text { flex: 1; min-width: 0; }
+      .med-title { display: block; font-weight: 900; font-size: 16.5px; line-height: 1.2; }
+      .med-line { display: block; font-size: 13.5px; font-weight: 700; color: var(--ink-soft); margin-top: 1px; }
+      .med-sync { display: block; font-size: 11px; font-weight: 800; color: var(--danger); margin-top: 2px; }
+      .med-due-banner { margin-top: 12px; border-radius: 14px; padding: 12px 14px; font-weight: 800; font-size: 15px; line-height: 1.35; }
+      .med-due-banner.soon { background: var(--untracked-bg); color: var(--untracked); }
+      .med-due-banner.overdue { background: var(--danger-bg); color: var(--danger); }
+      .med-freq { display: flex; align-items: center; gap: 8px; margin-top: 14px; flex-wrap: wrap; font-weight: 800; font-size: 14px; }
+      .med-freq input {
+        width: 76px; font: inherit; font-size: 16px; font-weight: 700; color: var(--ink);
+        background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px;
+      }
+      .med-freq button {
+        border: 0; background: var(--brand); color: var(--brand-ink); border-radius: 999px;
+        padding: 9px 18px; font: inherit; font-weight: 900; cursor: pointer; margin-left: auto;
+      }
+      .med-freq button:active { transform: scale(0.97); }
+      .med-badge {
+        display: inline-flex; align-items: center; gap: 5px; background: var(--med-bg); color: var(--med);
+        border: 1px solid var(--med); border-radius: 999px; padding: 3px 9px; font-size: 11px; font-weight: 900;
+        white-space: nowrap; vertical-align: middle;
+      }
+      .month-day .med-dot { position: absolute; bottom: 4px; right: 5px; font-size: 11px; line-height: 1; z-index: 2; }
+
       /* ---------- Sleep status banner ---------- */
       .sleep-banner {
         margin-top: 14px;
@@ -462,6 +502,7 @@
       .dot.play { background: var(--play-bg); color: var(--play); }
       .dot.walk { background: var(--walk-bg); color: var(--walk); }
       .dot.sleep { background: var(--sleep-bg); color: var(--sleep); }
+      .dot.medication { background: var(--med-bg); color: var(--med); }
       .entry .mid { flex: 1; min-width: 0; }
       .entry .what { font-weight: 900; font-size: 16.5px; display: block; }
       .entry .note {
@@ -750,6 +791,7 @@
       .calendar-event.play { background: var(--play); }
       .calendar-event.walk { background: var(--walk); }
       .calendar-event.sleep { background: var(--sleep); }
+      .calendar-event.medication { background: var(--med); }
       .calendar-event.cont-up { border-top: 3px dashed rgba(255, 255, 255, 0.85); }
       .calendar-event.cont-down { border-bottom: 3px dashed rgba(255, 255, 255, 0.85); }
       .calendar-event:active { filter: brightness(.88); }
@@ -933,7 +975,7 @@
         border-top: 1px solid var(--line);
         padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
         display: grid;
-        grid-template-columns: repeat(6, 1fr);
+        grid-template-columns: repeat(7, 1fr);
         z-index: 15;
         box-shadow: 0 -4px 18px rgba(43, 33, 24, 0.06);
       }
@@ -960,6 +1002,7 @@
       .quickbar .q-drink { color: var(--drink); }
       .quickbar .q-more { color: var(--ink-soft); }
       .quickbar .q-sleep { color: var(--sleep); }
+      .quickbar .q-med { color: var(--med); }
       .quickbar button.sleeping { background: var(--sleep-bg); }
       .quickbar .lbl { color: var(--ink); }
 
@@ -1395,6 +1438,26 @@
           <div class="due" id="dueBanner"></div>
         </div>
 
+        <!-- Medication: last dose, next due, reminder frequency -->
+        <div class="med-card" id="medCard">
+          <div class="med-head">
+            <span class="dot medication" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg></span>
+            <div class="med-text">
+              <span class="med-title">Medication</span>
+              <span class="med-line" id="medLastLine">No medication logged yet — log a dose to start reminders.</span>
+              <span class="med-line" id="medNextLine"></span>
+              <span class="med-sync" id="medSyncNote" hidden>Not saved yet — will retry</span>
+            </div>
+          </div>
+          <div class="med-due-banner" id="medDueBanner" hidden></div>
+          <div class="med-freq">
+            <label for="medFreqInput">Remind every</label>
+            <input type="number" id="medFreqInput" min="1" max="365" step="1" inputmode="numeric" value="30" aria-label="Medication reminder interval in days" />
+            <span>days</span>
+            <button type="button" id="medFreqSave">Save</button>
+          </div>
+        </div>
+
         <div id="untrackedTodayWrap"></div>
 
         <!-- Sleep status (visible only while a sleep is open for this profile) -->
@@ -1569,6 +1632,34 @@
         </section>
 
         <section>
+          <h3>Medication</h3>
+          <div class="status" style="margin-top:0">
+            <div class="timers" style="margin-top:0">
+              <div class="timer">
+                <div class="k">Last dose</div>
+                <div class="v" id="insMedLast">—</div>
+                <div class="s" id="insMedLastNote">&nbsp;</div>
+              </div>
+              <div class="timer">
+                <div class="k">Next due</div>
+                <div class="v" id="insMedDue">—</div>
+                <div class="s" id="insMedDueNote">&nbsp;</div>
+              </div>
+              <div class="timer">
+                <div class="k">Reminder</div>
+                <div class="v" id="insMedInterval">—</div>
+                <div class="s">between doses</div>
+              </div>
+              <div class="timer">
+                <div class="k">Doses · 90 days</div>
+                <div class="v" id="insMedCount">—</div>
+                <div class="s">doses logged</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section>
           <h3>When potty usually happens</h3>
           <div class="card">
             <div class="chart-scroll" id="chartBox"></div>
@@ -1604,6 +1695,10 @@
       <button type="button" data-quick="poop">
         <svg class="q-poop" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12.6 3.1c.4 1.1-.2 2-1.1 2.7 2.6.3 4.6 1.8 4.6 3.7 0 .4-.1.8-.3 1.1 1.9.6 3.2 2 3.2 3.7 0 2.6-3.1 4.7-7 4.7s-7-2.1-7-4.7c0-1.7 1.3-3.1 3.2-3.7-.2-.3-.3-.7-.3-1.1 0-2.1 2.3-3.6 5.1-3.8-.5-.8-.6-1.8.1-2.6.2-.3.5-.2.5 0z"/></svg>
         <span class="lbl">Poop</span>
+      </button>
+      <button type="button" data-quick="medication" aria-label="Log a medication dose">
+        <svg class="q-med" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg>
+        <span class="lbl">Med</span>
       </button>
       <button type="button" id="sleepBtn">
         <svg class="q-sleep" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
@@ -1682,6 +1777,7 @@
 
       ICONS.moon = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
       ICONS.alert = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2 1.8 20.2h20.4L12 2zm0 6.2 4.8 8.6H7.2L12 8.2zM11 11v3.2h2V11h-2zm0 4.4v2h2v-2h-2z"/></svg>';
+      ICONS.pill = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></svg>';
 
       var TYPES = {
         pee:   { label: "Pee",   icon: ICONS.drop },
@@ -1691,6 +1787,8 @@
         play:  { label: "Play",  icon: ICONS.ball },
         walk:  { label: "Walk",  icon: ICONS.paw },
         sleep: { label: "Sleep", icon: ICONS.moon },
+        medication: { label: "Medication", icon: ICONS.pill },
+        med_reminder: { label: "Medication reminder", icon: ICONS.pill },
         untracked: { label: "Not fully tracked", icon: ICONS.alert }
       };
       // Duration activities carry a real end time (ends_at); the rest are
@@ -1788,6 +1886,12 @@
         var ap = h >= 12 ? "PM" : "AM";
         h = h % 12; if (h === 0) h = 12;
         return h + ":" + (m < 10 ? "0" : "") + m + " " + ap;
+      }
+      function fmtDate(ts, now) {
+        var d = new Date(ts);
+        var opts = { month: "short", day: "numeric" };
+        if (d.getFullYear() !== new Date(now || Date.now()).getFullYear()) opts.year = "numeric";
+        return d.toLocaleDateString(undefined, opts);
       }
       function fmtAgo(ts, now) {
         var mins = Math.max(0, Math.round((now - ts) / 60000));
@@ -2251,11 +2355,12 @@
           if (op.kind === "insert") {
             var fe = findEntry(op.tempId);
             if (fe) fe.failed = true;
-            // Untracked markers: if the activity constraint doesn't allow
-            // 'untracked' yet, the insert is rejected. Don't let that one
-            // op block every later log — drop it from the queue, keep the
-            // marker locally as "Not saved yet", and requeue on load/poll.
-            if (fe && fe.type === "untracked") {
+            // Untracked markers and medication rows: if the activity
+            // constraint doesn't allow 'untracked' / 'medication' /
+            // 'med_reminder' yet, the insert is rejected. Don't let that
+            // one op block every later log — drop it from the queue, keep
+            // the row locally as "Not saved yet", and requeue on load/poll.
+            if (fe && (fe.type === "untracked" || fe.type === "medication" || fe.type === "med_reminder")) {
               var uidx = opQueue.indexOf(op);
               if (uidx >= 0) opQueue.splice(uidx, 1);
               // Continue flushing any ops queued behind the marker.
@@ -2363,14 +2468,15 @@
       }
 
       $("syncRetry").addEventListener("click", function () {
-        // Capture failed untracked markers before clearing flags so we
-        // can re-queue inserts that were dropped from the queue.
-        var failedUntracked = state.entries.filter(function (e) { return e.type === "untracked" && e.failed; });
+        // Capture failed untracked markers / medication rows before
+        // clearing flags so we can re-queue inserts that were dropped
+        // from the queue.
+        var failedLocal = state.entries.filter(function (e) { return (e.type === "untracked" || e.type === "medication" || e.type === "med_reminder") && e.failed; });
         state.entries.forEach(function (e) { e.failed = false; });
         state.failStreak = 0;
         if (state.conn === "error" || state.conn === "boot") setConn("boot");
         flushQueue();
-        failedUntracked.forEach(function (e) {
+        failedLocal.forEach(function (e) {
           var queued = opQueue.some(function (op) { return op.kind === "insert" && op.tempId === e.id; });
           if (!queued && isTempId(e.id)) queueInsert(e);
         });
@@ -2390,12 +2496,15 @@
       });
 
       /* ---------- queries ---------- */
-      // 'untracked' markers are NOT activities: dogEntries() excludes them
-      // so feed, counts, timers, patterns, walk auto-extend and sleep
-      // stats never see them. Markers are read via the helpers below.
+      // 'untracked' markers and 'med_reminder' settings rows are NOT
+      // activities: dogEntries() excludes them so feed, counts, timers,
+      // patterns, walk auto-extend and sleep stats never see them. They are
+      // read via the dedicated helpers below. 'medication' doses DO flow
+      // through dogEntries() (feed + calendar) but stay out of TYPE_ORDER,
+      // so they never join the counts grid or the pee/poop gap math.
       function dogEntries() {
         return state.entries
-          .filter(function (e) { return e.dog === state.dog && e.type !== "untracked"; })
+          .filter(function (e) { return e.dog === state.dog && e.type !== "untracked" && e.type !== "med_reminder"; })
           .sort(function (a, b) { return b.ts - a.ts; });
       }
       function getAllMarkers() {
@@ -2455,7 +2564,7 @@
       }
       function requeueFailedUntracked() {
         state.entries.forEach(function (e) {
-          if (e.type !== "untracked" || !e.failed) return;
+          if ((e.type !== "untracked" && e.type !== "medication" && e.type !== "med_reminder") || !e.failed) return;
           var queued = opQueue.some(function (op) { return op.kind === "insert" && op.tempId === e.id; });
           if (!queued) {
             e.failed = false;
@@ -2686,6 +2795,97 @@
         }
       }
 
+      /* ---------- medication ---------- */
+      // Doses are ordinary point entries (type 'medication') read through
+      // dogEntries(), newest first. The reminder interval lives in a
+      // 'med_reminder' settings row per dog: its note is the interval in
+      // days as plain text and the latest row wins; no row → 30 days.
+      function medicationDoses() {
+        return dogEntries().filter(function (e) { return e.type === "medication"; });
+      }
+      function medReminderRows() {
+        var seen = {};
+        var out = [];
+        function add(e) {
+          if (!e || e.dog !== state.dog || e.type !== "med_reminder") return;
+          if (seen[e.id]) return;
+          seen[e.id] = true;
+          out.push(e);
+        }
+        state.entries.forEach(add);
+        if (state.calendarEntries) state.calendarEntries.forEach(add);
+        return out;
+      }
+      // Tie-break equal timestamps by the local creation sequence in the
+      // temp id ("tmp-<seq>-<ts>"): a just-saved row must win over an
+      // earlier one even when both carry the same millisecond.
+      function medRowSeq(e) {
+        var m = /^tmp-(\d+)-/.exec(e.id || "");
+        return m ? parseInt(m[1], 10) : 0;
+      }
+      function medIntervalDays() {
+        var rows = medReminderRows().sort(function (a, b) {
+          return (b.ts - a.ts) || (medRowSeq(b) - medRowSeq(a));
+        });
+        for (var i = 0; i < rows.length; i++) {
+          var n = parseInt(rows[i].note, 10);
+          if (!isNaN(n) && n >= 1 && n <= 3650) return n;
+        }
+        return 30;
+      }
+      // Next due is always last dose + interval; daysUntil counts whole
+      // calendar days from today to the due day (negative = overdue).
+      function medStatus(now) {
+        var doses = medicationDoses();
+        var interval = medIntervalDays();
+        var last = doses.length ? doses[0] : null;
+        var due = last ? last.ts + interval * 86400000 : null;
+        var daysUntil = due != null
+          ? Math.round((startOfDay(due) - startOfDay(now)) / 86400000)
+          : null;
+        return { last: last, interval: interval, due: due, daysUntil: daysUntil, doses: doses };
+      }
+
+      function renderMedication(now) {
+        if (!$("medCard")) return;
+        var ms = medStatus(now);
+        var input = $("medFreqInput");
+        if (input && document.activeElement !== input) input.value = ms.interval;
+        var anyFailed = ms.doses.some(function (e) { return e.failed; }) ||
+          medReminderRows().some(function (e) { return e.failed; });
+        $("medSyncNote").hidden = !anyFailed;
+        var banner = $("medDueBanner");
+        if (!ms.last) {
+          $("medLastLine").textContent = "No medication logged yet — log a dose to start reminders.";
+          $("medNextLine").textContent = "";
+          banner.hidden = true;
+          banner.textContent = "";
+          return;
+        }
+        $("medLastLine").textContent = "Last medication: " + fmtDate(ms.last.ts, now) +
+          (ms.last.note ? " · " + ms.last.note : "");
+        $("medNextLine").textContent = "Next due: " + fmtDate(ms.due, now) +
+          " · every " + ms.interval + (ms.interval === 1 ? " day" : " days");
+        if (ms.daysUntil < 0) {
+          var od = -ms.daysUntil;
+          banner.hidden = false;
+          banner.className = "med-due-banner overdue";
+          banner.textContent = "Medication overdue by " + od + (od === 1 ? " day" : " days") +
+            " — last dose " + fmtDate(ms.last.ts, now) + ".";
+        } else if (ms.daysUntil === 0) {
+          banner.hidden = false;
+          banner.className = "med-due-banner overdue";
+          banner.textContent = "Medication due today.";
+        } else if (ms.daysUntil <= 2) {
+          banner.hidden = false;
+          banner.className = "med-due-banner soon";
+          banner.textContent = ms.daysUntil === 1 ? "Medication due tomorrow." : "Medication due in 2 days.";
+        } else {
+          banner.hidden = true;
+          banner.textContent = "";
+        }
+      }
+
       /* ---------- render: feed ---------- */
       function renderFeed(now) {
         var box = $("timeline");
@@ -2789,13 +2989,13 @@
         var range = calendarRange();
         var list = [];
         state.calendarEntries.forEach(function (e) {
-          if (e.dog === state.dog && e.type !== "untracked" && e.ts >= range.start && e.ts < range.end) {
+          if (e.dog === state.dog && e.type !== "untracked" && e.type !== "med_reminder" && e.ts >= range.start && e.ts < range.end) {
             map[e.id] = true;
             list.push(e);
           }
         });
         state.entries.forEach(function (e) {
-          if (e.dog === state.dog && e.type !== "untracked" && e.ts >= range.start && e.ts < range.end &&
+          if (e.dog === state.dog && e.type !== "untracked" && e.type !== "med_reminder" && e.ts >= range.start && e.ts < range.end &&
               !map[e.id] && (e.pending || e.failed || e.unconfirmed || isTempId(e.id))) {
             list.push(e);
           }
@@ -3012,6 +3212,16 @@
           dbadge.textContent = "Not fully tracked";
           $("dayLabel").appendChild(dbadge);
         }
+        // Next-dose due day (with no dose logged that day yet) gets a badge.
+        var dayMed = medStatus(now);
+        if (dayMed.last && dayMed.due && sameDay(dayMed.due, selected) &&
+            !list.some(function (e) { return e.type === "medication" && sameDay(e.ts, selected); })) {
+          var medBadge = document.createElement("span");
+          medBadge.className = "med-badge";
+          medBadge.style.marginLeft = "8px";
+          medBadge.textContent = "💊 Medication due";
+          $("dayLabel").appendChild(medBadge);
+        }
         $("dayLoading").hidden = !state.calendarLoading;
         var grid = $("dayTimeGrid");
         var plot = buildTimeGrid(grid);
@@ -3089,10 +3299,12 @@
             (sameDay(dayTs, now) ? " today" : "") +
             (sameDay(dayTs, state.calendarSelectedDay) ? " selected" : "");
           var markedDay = inMonth ? isDayMarked(dayTs) : false;
+          var medCount = inMonth ? calendarCount(list, dayTs, "medication") : 0;
           b.setAttribute("aria-label", d.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", year: "numeric" }) +
-            (pee || poop ? ", Pee " + pee + ", Poop " + poop : ", no potty entries") + (markedDay ? ", not fully tracked" : ""));
+            (pee || poop ? ", Pee " + pee + ", Poop " + poop : ", no potty entries") + (markedDay ? ", not fully tracked" : "") + (medCount ? ", medication logged" : ""));
           b.innerHTML = '<span class="date-num">' + d.getDate() + "</span>" +
             (markedDay ? '<span class="untracked-dot" aria-hidden="true"></span>' : "") +
+            (medCount ? '<span class="med-dot" aria-hidden="true">💊</span>' : "") +
             (pee ? '<span class="day-count pee">Pee ' + pee + "</span>" : "") +
             (poop ? '<span class="day-count poop">Poop ' + poop + "</span>" : "") +
             (markedDay ? '<span class="day-count untracked">Not tracked</span>' : "");
@@ -3271,6 +3483,26 @@
           ? "ended " + fmtClock(lastSleep.endTs) + (sameDay(lastSleep.endTs, now) ? "" : " · " + dayLabel(lastSleep.endTs, now))
           : "not logged yet";
 
+        // Medication — doses and the reminder interval, kept entirely out
+        // of the counts grid and potty math above.
+        var medMs = medStatus(now);
+        $("insMedLast").textContent = medMs.last ? fmtDate(medMs.last.ts, now) : "—";
+        $("insMedLastNote").textContent = medMs.last
+          ? (medMs.last.note || fmtAgo(medMs.last.ts, now))
+          : "not logged yet";
+        $("insMedDue").textContent = medMs.due ? fmtDate(medMs.due, now) : "—";
+        $("insMedDueNote").textContent = !medMs.last
+          ? "log a dose first"
+          : medMs.daysUntil < 0
+            ? "overdue by " + (-medMs.daysUntil) + (medMs.daysUntil === -1 ? " day" : " days")
+            : medMs.daysUntil === 0
+              ? "due today"
+              : "in " + medMs.daysUntil + (medMs.daysUntil === 1 ? " day" : " days");
+        $("insMedInterval").textContent = "Every " + medMs.interval + (medMs.interval === 1 ? " day" : " days");
+        $("insMedCount").textContent = String(medMs.doses.filter(function (e) {
+          return e.ts >= now - 90 * 86400000;
+        }).length);
+
         renderChart();
         renderLast7(now);
       }
@@ -3361,6 +3593,7 @@
         renderWeek(now);
         renderChips();
         renderStatus(now);
+        renderMedication(now);
         renderSleep(now);
         renderFeed(now);
         renderCalendar(now);
@@ -3752,7 +3985,7 @@
       function openEdit(id, isNew) {
         var e = findEntry(id);
         if (!e) return;
-        if (e.type === "untracked") return;
+        if (e.type === "untracked" || e.type === "med_reminder") return;
         state.editingId = id;
         state.editingIsNew = !!isNew;
         var dog = DOGS.find(function (d) { return d.id === e.dog; });
@@ -3763,6 +3996,9 @@
         $("editTitle").textContent = TYPES[e.type].label;
         $("editSub").textContent = "Logged for " + (dog ? dog.name : "") + " · " + fmtClock(e.ts);
         $("editNote").value = e.note || "";
+        $("editNote").placeholder = e.type === "medication"
+          ? "Med name / dose, e.g. Simparica Trio"
+          : "e.g. morning pee";
         var isDur = isDurationType(e.type);
         $("editWhenLabel").textContent = isDur ? "Start time" : "Date & time";
         $("editWhen").setAttribute("aria-label", isDur ? TYPES[e.type].label + " start time" : "Entry date and time");
@@ -3841,6 +4077,29 @@
       document.querySelectorAll("[data-quick]").forEach(function (btn) {
         btn.addEventListener("click", function () { quickLog(btn.getAttribute("data-quick")); });
       });
+      // Medication reminder frequency: saving writes a new med_reminder
+      // settings row (note = interval in days); the latest row wins and
+      // the next due date recomputes from the last dose immediately.
+      $("medFreqSave").addEventListener("click", function () {
+        var input = $("medFreqInput");
+        var n = parseInt(input.value, 10);
+        if (isNaN(n)) n = medIntervalDays();
+        n = Math.max(1, Math.min(365, n));
+        input.value = n;
+        var now = Date.now();
+        var e = {
+          id: "tmp-" + (++state.seq) + "-" + now,
+          dog: state.dog, type: "med_reminder", ts: now, endTs: null,
+          note: String(n), pending: true, unconfirmed: true
+        };
+        state.entries.push(e);
+        queueInsert(e);
+        showToast("Medication reminder: every " + n + (n === 1 ? " day" : " days"), function () {
+          deleteEntry(e.id);
+        });
+        renderAll();
+      });
+
       $("sleepBtn").addEventListener("click", toggleSleep);
       $("sleepBanner").addEventListener("click", function () {
         var open = openSleep();
